@@ -1,0 +1,6 @@
+{
+  "name": "Wasteage Solution",
+  "description": "A modern, eco-friendly waste collection and scrap selling platform for household, office, and factory recycling in India.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
