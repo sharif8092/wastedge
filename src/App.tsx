@@ -258,8 +258,6 @@ export default function App() {
         .single();
       if (profile) {
         setActiveUser(profile);
-      } else {
-        setActiveUser(null);
       }
     };
 
@@ -313,10 +311,23 @@ export default function App() {
       let route = "/customer-dashboard";
       if (data.user) {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle();
-        if (profile) {
-          if (profile.role === 'admin') route = "/admin-dashboard";
-          else if (profile.role === 'vendor') route = "/vendor-dashboard";
+        let finalProfile = profile;
+        
+        if (!profile) {
+          const newProfile = {
+            id: data.user.id,
+            email: data.user.email || null,
+            full_name: 'User',
+            phone: '0000000000',
+            role: 'customer' as const
+          };
+          await supabase.from('profiles').insert([newProfile]);
+          finalProfile = newProfile;
         }
+
+        setActiveUser(finalProfile);
+        if (finalProfile.role === 'admin') route = "/admin-dashboard";
+        else if (finalProfile.role === 'vendor') route = "/vendor-dashboard";
       }
       triggerToast(`Signed in successfully.`);
       navigate(route);
