@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { 
   Profile, 
   PickupRequest, 
@@ -6,6 +6,7 @@ import {
   Notification,
   PickupRequestStatus
 } from "../types";
+import { supabase } from "../lib/supabase";
 import { 
   INDIAN_STATES 
 } from "../data";
@@ -60,6 +61,24 @@ export function CustomerDashboard({
   onSwitchToVendor
 }: CustomerDashboardProps) {
   // Navigation tabs
+  const [localRequests, setLocalRequests] = useState<PickupRequest[]>([]);
+  const [localNotifs, setLocalNotifs] = useState<Notification[]>([]);
+  const [localProfiles, setLocalProfiles] = useState<Profile[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: reqs } = await supabase.from('pickup_requests').select('*').eq('customer_id', profile.id).order('created_at', { ascending: false });
+      if (reqs) setLocalRequests(reqs);
+
+      const { data: notifs } = await supabase.from('notifications').select('*').eq('user_id', profile.id).order('created_at', { ascending: false });
+      if (notifs) setLocalNotifs(notifs);
+
+      const { data: profs } = await supabase.from('profiles').select('*');
+      if (profs) setLocalProfiles(profs);
+    };
+    fetchData();
+  }, [profile.id]);
+
   const [activeTab, setActiveTab] = useState<"overview" | "new-request" | "history" | "profile">("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifPanelOpen, setNotifPanelOpen] = useState(false);
@@ -88,7 +107,7 @@ export function CustomerDashboard({
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   // Total statistics calculations
-  const myRequests = requests.filter(r => r.customer_id === profile.id);
+  const myRequests = localRequests.filter(r => r.customer_id === profile.id);
   const pendingCount = myRequests.filter(r => r.status === "pending").length;
   const completedCount = myRequests.filter(r => r.status === "completed").length;
   const inProgressCount = myRequests.filter(r => ["assigned", "accepted", "in_progress"].includes(r.status)).length;
@@ -101,7 +120,7 @@ export function CustomerDashboard({
   });
 
   // Notifications for current customer
-  const myNotifs = notifications.filter(n => n.user_id === profile.id);
+  const myNotifs = localNotifs.filter(n => n.user_id === profile.id);
   const unreadNotifCount = myNotifs.filter(n => !n.is_read).length;
 
   // Image upload triggers
@@ -153,7 +172,7 @@ export function CustomerDashboard({
   };
 
   // Create Request Submit
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors: Record<string, string> = {};
 
@@ -172,6 +191,19 @@ export function CustomerDashboard({
     }
 
     // Call state provider insert
+    const { data: newReq } = await supabase.from('pickup_requests').insert({
+      customer_id: profile.id,
+      category_id: formCategory,
+      description: formDescription,
+      address: formAddress,
+      city: formCity,
+      state: formStateVal,
+      pincode: formPincode,
+      image_urls: formImages,
+      status: "pending"
+    }).select();
+    if (newReq) setLocalRequests([newReq[0], ...localRequests]);
+    
     onCreateRequest({
       category_id: formCategory,
       description: formDescription,
@@ -234,7 +266,7 @@ export function CustomerDashboard({
   // Find vendor details
   const getVendorName = (vendorProfileId?: string) => {
     if (!vendorProfileId) return "Waiting for Admin Assignment";
-    const v = allProfiles.find(p => p.id === vendorProfileId);
+    const v = localProfiles.find(p => p.id === vendorProfileId);
     return v ? `${v.full_name} (Collector)` : "Assigned Collector Service";
   };
 
@@ -839,9 +871,11 @@ export function CustomerDashboard({
                       <div className="flex gap-2">
                         {request.status === "pending" && (
                           <button 
-                            onClick={() => {
+                            onClick={async () => {
                               if (confirm("Are you sure you want to cancel this pickup request?")) {
-                                onCancelRequest(request.id);
+                                await supabase.from('pickup_requests').update({ status: 'cancelled' }).eq('id', request.id);
+  setLocalRequests(localRequests.map(r => r.id === request.id ? { ...r, status: 'cancelled' } : r));
+  onCancelRequest(request.id);
                               }
                             }}
                             className="p-1 px-2 border border-red-200 text-red-500 hover:bg-red-50 rounded-lg text-[10px] font-bold cursor-pointer"
@@ -1035,9 +1069,11 @@ export function CustomerDashboard({
                 <span className="text-gray-450 font-medium">Logged on: {new Date(selectedRequest.created_at).toLocaleString()}</span>
                 {selectedRequest.status === "pending" && (
                   <button 
-                    onClick={() => {
-                      if (confirm("Are you sure you want to cancel this request?")) {
-                        onCancelRequest(selectedRequest.id);
+                    onClick={async () => {
+                              if (confirm("Are you sure you want to cancel this request?")) {
+                        await supabase.from('pickup_requests').update({ status: 'cancelled' }).eq('id', selectedRequest.id);
+  setLocalRequests(localRequests.map(r => r.id === selectedRequest.id ? { ...r, status: 'cancelled' } : r));
+  onCancelRequest(selectedRequest.id);
                         setSelectedRequest(null);
                       }
                     }}

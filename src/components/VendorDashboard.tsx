@@ -1,153 +1,283 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { 
   Profile, 
-  Vendor, 
   PickupRequest, 
   Category, 
-  Notification 
+  Notification,
+  PickupRequestStatus
 } from "../types";
+import { supabase } from "../lib/supabase";
+import { 
+  INDIAN_STATES 
+} from "../data";
 import { 
   LayoutDashboard, 
-  Truck, 
-  CheckCircle, 
+  PlusCircle, 
+  History, 
   User, 
   LogOut, 
-  MapPin, 
+  Trash2, 
+  Clock, 
+  CheckCircle,
+  Truck, 
   AlertTriangle, 
-  X, 
-  Phone, 
-  Bell, 
-  Menu,
-  Check,
-  Search,
-  BookOpen,
   Info,
+  MapPin, 
+  Camera, 
+  X, 
+  Menu, 
+  Bell,
+  Trash,
+  Phone,
+  FileText,
   Recycle
 } from "lucide-react";
 
 interface VendorDashboardProps {
   profile: Profile;
-  vendor: Vendor | undefined;
   requests: PickupRequest[];
   categories: Category[];
   notifications: Notification[];
-  allProfiles: Profile[]; // to join and retrieve customer full_names and real details
   onLogout: () => void;
-  onAcceptAssignment: (requestId: string) => void;
-  onDeclineAssignment: (requestId: string) => void;
-  onStartPickup: (requestId: string) => void;
-  onCompletePickup: (requestId: string, notes: string) => void;
-  onUpdateVendorProfile: (businessName: string, serviceAreas: string[], fullName: string, phone: string) => void;
+  onCreateRequest: (request: Omit<PickupRequest, "id" | "customer_id" | "created_at" | "updated_at">) => void;
+  onCancelRequest: (requestId: string) => void;
+  onUpdateProfile: (name: string, phone: string) => void;
   onMarkNotificationRead: (notifId: string) => void;
+  allProfiles: Profile[]; // to show assigned vendor business name
   onSwitchToCustomer?: () => void;
 }
 
 export function VendorDashboard({
   profile,
-  vendor,
   requests,
   categories,
   notifications,
-  allProfiles,
   onLogout,
-  onAcceptAssignment,
-  onDeclineAssignment,
-  onStartPickup,
-  onCompletePickup,
-  onUpdateVendorProfile,
+  onCreateRequest,
+  onCancelRequest,
+  onUpdateProfile,
   onMarkNotificationRead,
+  allProfiles,
   onSwitchToCustomer
 }: VendorDashboardProps) {
-  // Navigation State
-  const [activeTab, setActiveTab] = useState<"overview" | "assigned" | "completed" | "profile">("overview");
+  // Navigation tabs
+  const [localRequests, setLocalRequests] = useState<PickupRequest[]>([]);
+  const [localNotifs, setLocalNotifs] = useState<Notification[]>([]);
+  const [localProfiles, setLocalProfiles] = useState<Profile[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: reqs } = await supabase.from('pickup_requests').select('*').eq('customer_id', profile.id).order('created_at', { ascending: false });
+      if (reqs) setLocalRequests(reqs);
+
+      const { data: notifs } = await supabase.from('notifications').select('*').eq('user_id', profile.id).order('created_at', { ascending: false });
+      if (notifs) setLocalNotifs(notifs);
+
+      const { data: profs } = await supabase.from('profiles').select('*');
+      if (profs) setLocalProfiles(profs);
+    };
+    fetchData();
+  }, [profile.id]);
+
+  const [activeTab, setActiveTab] = useState<"overview" | "new-request" | "history" | "profile">("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifPanelOpen, setNotifPanelOpen] = useState(false);
 
-  // Completion Dialog Modal State
-  const [completingRequestId, setCompletingRequestId] = useState<string | null>(null);
-  const [completionNotes, setCompletionNotes] = useState("");
+  // Detail View State
+  const [selectedRequest, setSelectedRequest] = useState<PickupRequest | null>(null);
 
-  // Forms editing states
-  const [businessName, setBusinessName] = useState(vendor?.business_name || "");
-  const [serviceAreasRaw, setServiceAreasRaw] = useState(vendor?.service_areas.join(", ") || "");
-  const [vendorFullName, setVendorFullName] = useState(profile.full_name);
-  const [vendorPhone, setVendorPhone] = useState(profile.phone);
-  const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
+  // Forms states
+  const [formCategory, setFormCategory] = useState(categories[0]?.id || "");
+  const [formDescription, setFormDescription] = useState("");
+  const [formAddress, setFormAddress] = useState("");
+  const [formCity, setFormCity] = useState("");
+  const [formStateVal, setFormStateVal] = useState(INDIAN_STATES[0]);
+  const [formPincode, setFormPincode] = useState("");
+  const [formImages, setFormImages] = useState<string[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Calculations
-  const myAssignedRequests = requests.filter(r => r.vendor_id === profile.id);
-  const activeJobs = myAssignedRequests.filter(r => ["assigned", "accepted", "in_progress"].includes(r.status));
-  const completedJobs = myAssignedRequests.filter(r => r.status === "completed");
-  
-  // Quick stats
-  const totalCompletedWeight = completedJobs.length * 15.4; // simulated weights
-  const carbonOffsetCount = completedJobs.length * 8.2; // simulated offset index
+  // Profile Edit Form State
+  const [profileName, setProfileName] = useState(profile.full_name);
+  const [profilePhone, setProfilePhone] = useState(profile.phone);
+  const [profileMessage, setProfileMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Customer Join helper
-  const getCustomerProfile = (customerProfileId: string) => {
-    return allProfiles.find(p => p.id === customerProfileId) || {
-      full_name: "Valued Client",
-      phone: "0000000000",
-      email: "client@wastedge.in"
-    };
-  };
+  // Form error messages
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const getCategoryName = (id: string) => {
-    const cat = categories.find(c => c.id === id);
-    return cat ? cat.category_name : "General Waste";
-  };
+  // Total statistics calculations
+  const myRequests = localRequests.filter(r => r.customer_id === profile.id);
+  const pendingCount = myRequests.filter(r => r.status === "pending").length;
+  const completedCount = myRequests.filter(r => r.status === "completed").length;
+  const inProgressCount = myRequests.filter(r => ["assigned", "accepted", "in_progress"].includes(r.status)).length;
 
-  // Masking phone numbers until accepted
-  const getMaskedPhone = (phone: string, requestStatus: string) => {
-    if (["accepted", "in_progress", "completed"].includes(requestStatus)) {
-      return `+91 ${phone}`;
-    }
-    return `+91 ${phone.substring(0, 3)}XXXX${phone.substring(7)}`;
-  };
+  // Filter requests
+  const [historyFilter, setHistoryFilter] = useState<"all" | PickupRequestStatus>("all");
+  const filteredHistory = myRequests.filter(r => {
+    if (historyFilter === "all") return true;
+    return r.status === historyFilter;
+  });
 
-  const myNotifs = notifications.filter(n => n.user_id === profile.id);
+  // Notifications for current customer
+  const myNotifs = localNotifs.filter(n => n.user_id === profile.id);
   const unreadNotifCount = myNotifs.filter(n => !n.is_read).length;
 
-  // Form Submissions
-  const handleProfileUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    const areas = serviceAreasRaw
-      .split(",")
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
-    
-    onUpdateVendorProfile(businessName, areas, vendorFullName, vendorPhone);
-    setProfileSuccessMsg("Vendor records and service areas modified successfully!");
-    setTimeout(() => setProfileSuccessMsg(null), 3505);
+  // Image upload triggers
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      appendFiles(e.target.files);
+    }
   };
 
-  const submitPickupCompletion = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!completingRequestId) return;
-    if (!completionNotes.trim()) {
-      alert("Please specify weight measurements or payout receipts in transaction notes.");
+  const appendFiles = (files: FileList) => {
+    const fileArray = Array.from(files);
+    const validFiles = fileArray.filter(file => file.type.startsWith("image/"));
+    
+    if (validFiles.length + formImages.length > 5) {
+      alert("A maximum of 5 images are allowed per pickup request.");
       return;
     }
 
-    onCompletePickup(completingRequestId, completionNotes);
-    setCompletingRequestId(null);
-    setCompletionNotes("");
-    setActiveTab("completed");
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === "string") {
+          setFormImages(prev => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  // Safe checks for vendor approval state
-  const isApproved = vendor?.verification_status === "approved";
-  const isPending = vendor?.verification_status === "pending" || !vendor;
-  const isRejected = vendor?.verification_status === "rejected";
+  const removeUploadedImage = (indexToRemove: number) => {
+    setFormImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (e.dataTransfer.files) {
+      appendFiles(e.dataTransfer.files);
+    }
+  };
+
+  // Create Request Submit
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors: Record<string, string> = {};
+
+    if (!formCategory) errors.category = "Category is required";
+    if (formDescription.length < 10) errors.description = "Please describe the items (minimum 10 characters)";
+    if (formDescription.length > 500) errors.description = "Maximum 500 characters allowed";
+    if (!formAddress.trim()) errors.address = "Street address is required";
+    if (!formCity.trim()) errors.city = "City is required";
+    if (!formPincode.trim() || formPincode.length !== 6 || isNaN(Number(formPincode))) {
+      errors.pincode = "Please enter a valid 6-digit numeric Indian PIN code";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    // Call state provider insert
+    const { data: newReq } = await supabase.from('pickup_requests').insert({
+      customer_id: profile.id,
+      category_id: formCategory,
+      description: formDescription,
+      address: formAddress,
+      city: formCity,
+      state: formStateVal,
+      pincode: formPincode,
+      image_urls: formImages,
+      status: "pending"
+    }).select();
+    if (newReq) setLocalRequests([newReq[0], ...localRequests]);
+    
+    onCreateRequest({
+      category_id: formCategory,
+      description: formDescription,
+      address: formAddress,
+      city: formCity,
+      state: formStateVal,
+      pincode: formPincode,
+      image_urls: formImages,
+      status: "pending"
+    });
+
+    setFormErrors({});
+    setFormDescription("");
+    setFormAddress("");
+    setFormCity("");
+    setFormPincode("");
+    setFormImages([]);
+    setSubmitSuccess(true);
+    setTimeout(() => {
+      setSubmitSuccess(false);
+      setActiveTab("history");
+    }, 2000);
+  };
+
+  // Profile update submit
+  const handleProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileName.trim()) {
+      setProfileMessage({ type: "error", text: "Full name cannot be blank." });
+      return;
+    }
+    if (profilePhone.length !== 10 || isNaN(Number(profilePhone))) {
+      setProfileMessage({ type: "error", text: "Phone number must be exactly 10 digits." });
+      return;
+    }
+
+    onUpdateProfile(profileName, profilePhone);
+    setProfileMessage({ type: "success", text: "Account profile records updated successfully!" });
+    setTimeout(() => setProfileMessage(null), 3500);
+  };
+
+  // Helper helper to get Category Name from ID
+  const getCategoryName = (id: string) => {
+    const cat = categories.find(c => c.id === id);
+    return cat ? cat.category_name : "General Waste";
+  }
+
+  const getStatusColor = (status: PickupRequestStatus) => {
+    const colors = {
+      pending: "bg-amber-100 text-amber-800 border-amber-200",
+      assigned: "bg-indigo-100 text-indigo-800 border-indigo-200",
+      accepted: "bg-sky-100 text-sky-800 border-sky-200",
+      in_progress: "bg-blue-100 text-blue-800 border-blue-200",
+      completed: "bg-green-100 text-green-800 border-green-200",
+      cancelled: "bg-gray-100 text-gray-800 border-gray-200"
+    };
+    return colors[status] || "bg-gray-100 text-gray-800 border-gray-200";
+  };
+
+  // Find vendor details
+  const getVendorName = (vendorProfileId?: string) => {
+    if (!vendorProfileId) return "Waiting for Admin Assignment";
+    const v = localProfiles.find(p => p.id === vendorProfileId);
+    return v ? `${v.full_name} (Collector)` : "Assigned Collector Service";
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row relative">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row relative font-sans">
       
-      {/* Mobile Header Bar */}
+      {/* Mobile Top Header Bar */}
       <header className="md:hidden bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-brand-green-600 text-white rounded-lg flex items-center justify-center shrink-0">
-            <Recycle size={16} className="animate-spin-slow" />
+            <Recycle size={18} className="animate-spin-slow" />
           </div>
           <span className="font-bold text-slate-800 font-display text-sm">
             wastEdge<span className="text-brand-green-600 underline decoration-brand-sky-500 decoration-2">Solution</span>
@@ -156,9 +286,9 @@ export function VendorDashboard({
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setNotifPanelOpen(!notifPanelOpen)} 
-            className="p-2 relative bg-gray-50 rounded-lg"
+            className="p-2 relative bg-gray-50 rounded-lg text-gray-600"
           >
-            <Bell size={20} className="text-gray-600" />
+            <Bell size={20} />
             {unreadNotifCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold">
                 {unreadNotifCount}
@@ -174,50 +304,50 @@ export function VendorDashboard({
         </div>
       </header>
 
-      {/* Slideout Notifications for Vendor */}
+      {/* Floating Notification Panel */}
       {notifPanelOpen && (
-        <div className="fixed inset-0 bg-transparent z-50 flex justify-end animate-fade-in" onClick={() => setNotifPanelOpen(false)}>
+        <div className="fixed inset-0 bg-transparent z-50 flex justify-end" onClick={() => setNotifPanelOpen(false)}>
           <div 
             className="w-80 bg-white shadow-2xl h-full border-l border-gray-150 p-6 flex flex-col mt-[60px] md:mt-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
-              <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm uppercase tracking-wider font-display">
-                <Bell className="text-brand-sky-500" size={16} /> Notification Feed
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4 animate-fade-in">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <Bell className="text-brand-green-600" size={18} /> Notifications
               </h3>
               <button onClick={() => setNotifPanelOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={18} />
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto space-y-3">
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
               {myNotifs.length === 0 ? (
                 <div className="text-center py-12 text-gray-400 text-xs">
-                  No notifications recorded.
+                  No notifications recorded yet.
                 </div>
               ) : (
                 myNotifs.map(notif => (
                   <div 
                     key={notif.id} 
-                    className={`p-3 rounded-xl border text-left text-xs ${
+                    className={`p-3 rounded-xl border transition-all text-left relative ${
                       notif.is_read 
-                        ? 'bg-gray-50 border-gray-100 text-gray-500' 
-                        : 'bg-brand-sky-50 border-brand-sky-100 text-gray-800 font-medium'
+                        ? 'bg-gray-50/50 border-gray-100 text-gray-500' 
+                        : 'bg-brand-green-50/70 border-brand-green-100 text-gray-800 shadow-xs'
                     }`}
                   >
-                    <h4 className="font-bold text-gray-800 text-xs">{notif.title}</h4>
+                    <h4 className="font-semibold text-xs text-gray-800">{notif.title}</h4>
                     <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{notif.message}</p>
-                    <div className="flex justify-between items-center mt-3 text-[9px] text-gray-400">
-                      <span>{new Date(notif.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
-                      {!notif.is_read && (
-                        <button 
-                          onClick={() => onMarkNotificationRead(notif.id)}
-                          className="text-brand-sky-600 hover:underline cursor-pointer"
-                        >
-                          Mark Read
-                        </button>
-                      )}
-                    </div>
+                    <span className="block text-[9px] text-gray-400 mt-2">
+                      {new Date(notif.created_at).toLocaleString("en-IN", { hour: "numeric", minute: "2-digit" })}
+                    </span>
+                    {!notif.is_read && (
+                      <button 
+                        onClick={() => onMarkNotificationRead(notif.id)}
+                        className="absolute top-2 right-2 text-[9px] font-bold text-brand-green-700 hover:underline cursor-pointer"
+                      >
+                        Mark Read
+                      </button>
+                    )}
                   </div>
                 ))
               )}
@@ -226,7 +356,7 @@ export function VendorDashboard({
         </div>
       )}
 
-      {/* Sidebar Navigation */}
+      {/* Navigation Drawer Sidebar */}
       <aside className={`
         fixed inset-y-0 left-0 bg-white border-r border-gray-200 w-64 p-6 flex flex-col z-50 transform transition-transform duration-350 ease-in-out
         md:translate-x-0 md:static md:h-screen md:w-68
@@ -235,7 +365,7 @@ export function VendorDashboard({
         <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-150">
           <div className="flex items-center gap-2.5 text-left">
             <div className="w-9 h-9 bg-brand-green-600 text-white rounded-xl flex items-center justify-center shrink-0">
-              <Recycle size={18} className="animate-spin-slow" />
+              <Recycle size={20} className="animate-spin-slow" />
             </div>
             <span className="text-lg font-bold tracking-tight text-slate-800 font-display">
               wastEdge<span className="text-brand-green-600 underline decoration-brand-sky-500 decoration-3">Solution</span>
@@ -246,540 +376,589 @@ export function VendorDashboard({
           </button>
         </div>
 
-        {/* Agency Summary */}
-        <div className="bg-gray-50 p-4 rounded-2xl mb-8 flex flex-col text-left border border-gray-100">
-          <span className="text-[10px] uppercase font-bold text-gray-400">Collector Agency</span>
-          <h4 className="font-extrabold text-sm text-gray-800 mt-1 uppercase truncate">
-            {vendor?.business_name || "Unverified Agency"}
-          </h4>
-          <div className="mt-2.5 flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 font-semibold">Verification status</span>
-            <span className={`inline-flex py-0.5 px-2 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-              isApproved 
-                ? 'bg-green-100 text-green-800' 
-                : isRejected 
-                  ? 'bg-red-100 text-red-800' 
-                  : 'bg-amber-100 text-amber-800'
-            }`}>
-              {vendor?.verification_status || "pending"}
+        {/* User Card */}
+        <div className="bg-gray-50/80 p-4 rounded-2xl mb-8 flex items-center gap-3 border border-gray-100">
+          <img 
+            className="w-10 h-10 rounded-full object-cover border-2 border-brand-green-200" 
+            src={profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150"} 
+            alt="customer profile placeholder avatar" 
+          />
+          <div className="text-left overflow-hidden">
+            <span className="block font-bold text-sm text-gray-800 truncate leading-tight">{profile.full_name}</span>
+            <span className="inline-flex py-0.5 px-2 bg-brand-green-100 text-brand-green-700 rounded-full text-[9px] font-semibold tracking-wider font-mono mt-1 uppercase">
+              {profile.role}
             </span>
           </div>
         </div>
 
-        {/* Navigation Sidebar List */}
-        <nav className="space-y-1.5 flex-1 text-left">
-          <button
+        {/* Sidebar Navigation */}
+        <nav className="space-y-1.5 flex-1">
+          <SidebarNavBtn 
+            active={activeTab === "overview"} 
             onClick={() => { setActiveTab("overview"); setMobileMenuOpen(false); }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors cursor-pointer ${
-              activeTab === "overview" ? "bg-brand-sky-50 text-brand-sky-600 border-l-4 border-brand-sky-500" : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
-            }`}
-          >
-            <LayoutDashboard size={18} /> Overview Hub
-          </button>
-          
-          <button
-            disabled={!isApproved}
-            onClick={() => { if (isApproved) { setActiveTab("assigned"); setMobileMenuOpen(false); } }}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold text-sm transition-colors cursor-pointer ${
-              !isApproved 
-                ? "text-gray-305 cursor-not-allowed opacity-40" 
-                : activeTab === "assigned" 
-                  ? "bg-brand-sky-50 text-brand-sky-600 border-l-4 border-brand-sky-500" 
-                  : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
-            }`}
-          >
-            <span className="flex items-center gap-3"><Truck size={18} /> Assigned runs</span>
-            {isApproved && activeJobs.length > 0 && (
-              <span className="bg-brand-sky-500 text-white font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center">
-                {activeJobs.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            disabled={!isApproved}
-            onClick={() => { if (isApproved) { setActiveTab("completed"); setMobileMenuOpen(false); } }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors cursor-pointer ${
-              !isApproved 
-                ? "text-gray-305 cursor-not-allowed opacity-40" 
-                : activeTab === "completed" 
-                  ? "bg-brand-sky-50 text-brand-sky-600 border-l-4 border-brand-sky-500" 
-                  : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
-            }`}
-          >
-            <CheckCircle size={18} /> Legwork History
-          </button>
-
-          <button
+            icon={<LayoutDashboard size={18} />} 
+            label="Overview Panel" 
+          />
+          <SidebarNavBtn 
+            active={activeTab === "new-request"} 
+            onClick={() => { setActiveTab("new-request"); setMobileMenuOpen(false); }}
+            icon={<PlusCircle size={18} />} 
+            label="New Pickup" 
+          />
+          <SidebarNavBtn 
+            active={activeTab === "history"} 
+            onClick={() => { setActiveTab("history"); setMobileMenuOpen(false); }}
+            icon={<History size={18} />} 
+            label="My Scrap Jobs" 
+          />
+          <SidebarNavBtn 
+            active={activeTab === "profile"} 
             onClick={() => { setActiveTab("profile"); setMobileMenuOpen(false); }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors cursor-pointer ${
-              activeTab === "profile" ? "bg-brand-sky-50 text-brand-sky-600 border-l-4 border-brand-sky-500" : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
-            }`}
-          >
-            <User size={18} /> Collector Profile
-          </button>
-          
-          {onSwitchToCustomer && (
+            icon={<User size={18} />} 
+            label="Account Profile" 
+          />
+          {profile.role === "vendor" && onSwitchToCustomer && (
             <div className="border-t border-slate-150 pt-4 mt-4">
               <button
                 type="button"
                 onClick={() => { onSwitchToCustomer(); setMobileMenuOpen(false); }}
-                className="w-full text-left flex items-center gap-3 px-4 py-3 bg-brand-green-50 text-brand-green-700 hover:bg-brand-green-105 rounded-xl font-bold text-sm transition-all duration-205 cursor-pointer border border-brand-green-100/50"
+                className="w-full text-left flex items-center gap-3 px-4 py-3 bg-brand-sky-50 text-brand-sky-650 hover:bg-brand-sky-100 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer border border-brand-sky-100/50"
               >
-                <Recycle size={18} className="animate-spin-slow text-brand-green-600" />
-                <span>Sell My Scrap</span>
+                <Truck size={18} className="animate-pulse" />
+                <span>Collector Hub</span>
               </button>
             </div>
           )}
         </nav>
 
-        {/* System parameters */}
-        <div className="bg-brand-sky-50 p-4 rounded-xl border border-brand-sky-100 text-left mb-6 text-xs text-slate-700">
-          <BookOpen className="text-brand-sky-600 mb-1" size={14} />
-          <span className="font-bold block">Safety Code</span>
-          <span className="text-[10px] text-gray-500 block mt-0.5">Contact customer only after accepting assignments to align pickup slots.</span>
+        {/* Info Box */}
+        <div className="bg-brand-sky-50 rounded-2xl p-4 border border-brand-sky-100 text-left mb-6">
+          <div className="flex gap-2 items-start text-brand-sky-700">
+            <Info size={16} className="mt-0.5 shrink-0" />
+            <div>
+              <span className="block text-xs font-bold leading-normal">Fair Weighing</span>
+              <span className="block text-[10px] text-gray-500 mt-0.5 leading-normal">Collectors arrive with calibrated handheld scales. Cash paid on spot.</span>
+            </div>
+          </div>
         </div>
 
         {/* Logout bottom */}
         <button 
           onClick={onLogout}
-          className="w-full py-3.5 border border-red-155 text-red-500 bg-red-50 hover:bg-red-100/40 rounded-xl font-extrabold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3.5 border border-red-100 text-red-500 bg-red-50 hover:bg-red-100/50 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
         >
           <LogOut size={16} /> Log Out
         </button>
       </aside>
 
-      {/* Main Panel Content */}
+      {/* Main panel container */}
       <main className="flex-1 p-6 md:p-10 max-h-screen overflow-y-auto">
-
-        {/* Desktop Header panel info */}
+        
+        {/* Desktop header metrics bar */}
         <div className="hidden md:flex items-center justify-between border-b border-gray-100 pb-6 mb-8">
           <div className="text-left">
-            <h1 className="text-2xl font-extrabold text-gray-900 font-display">
+            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight font-display">
               Vendor Area: {profile.full_name}
             </h1>
-            <p className="text-xs text-gray-400 mt-1">Legitimate environmental clearances for your designated pin codes.</p>
+            <p className="text-xs text-gray-400 mt-1">Request bulk collection from our fleet today.</p>
           </div>
           
-          <div className="flex items-center gap-5">
-            <button 
-              onClick={() => setNotifPanelOpen(!notifPanelOpen)}
-              className="p-3 bg-white border border-gray-150 rounded-xl hover:bg-gray-50 cursor-pointer relative"
-            >
-              <Bell size={20} className="text-gray-600" />
-              {unreadNotifCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-extrabold">
-                  {unreadNotifCount}
-                </span>
-              )}
-            </button>
+          <div className="flex items-center gap-4">
+            {/* Desktop Notification Selector */}
+            <div className="relative">
+              <button 
+                onClick={() => setNotifPanelOpen(!notifPanelOpen)}
+                className="p-3 bg-white border border-gray-150 rounded-xl text-gray-600 hover:bg-gray-50 transition cursor-pointer relative"
+              >
+                <Bell size={20} />
+                {unreadNotifCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-extrabold">
+                    {unreadNotifCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
             <div className="text-right">
-              <span className="block text-xs text-gray-400 font-bold uppercase tracking-wider font-mono">Mobile Node</span>
-              <span className="text-sm font-semibold text-gray-700">+91 {profile.phone}</span>
+              <span className="block text-xs text-gray-400 font-bold tracking-wider font-mono uppercase">User Session</span>
+              <span className="text-sm font-semibold text-gray-700">Phone: +91 {profile.phone}</span>
             </div>
           </div>
         </div>
 
-        {/* BLOCKING INTERFACE GATES IF NOT APPROVED */}
-        {isPending && (
-          <div className="bg-white border border-amber-200 rounded-3xl p-8 text-left max-w-3xl mb-8 flex gap-5 shadow-xs relative overflow-hidden animate-fade-in">
-            <div className="absolute top-0 left-0 w-2 h-full bg-amber-500"></div>
-            <div className="p-4 bg-amber-50 rounded-2xl text-amber-600 h-fit">
-              <AlertTriangle size={32} />
-            </div>
-            <div>
-              <span className="inline-flex py-1 px-3 bg-amber-50 rounded-lg text-amber-800 text-xs font-bold font-mono tracking-wide uppercase">
-                Pending Registration Approval
-              </span>
-              <h2 className="text-xl font-bold font-display text-gray-900 mt-3 mb-2">
-                Your collector credentials are currently under administrative review
-              </h2>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                Thank you for applying to the wastEdge Solution platform! Our state recycling officers are currently auditing your chosen service areas. You will gain full dashboard assignment functionalities as soon as verification completes.
-              </p>
-              
-              <div className="mt-6 p-4 bg-gray-50 border border-gray-150 rounded-2xl">
-                <span className="text-xs font-bold text-gray-400 block uppercase tracking-wider">Your Submitted Areas:</span>
-                <span className="text-xs text-gray-700 block mt-1.5 font-semibold font-mono">
-                  {vendor?.service_areas.length ? vendor.service_areas.join(", ") : "No pin codes submitted yet"}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isRejected && (
-          <div className="bg-white border border-red-200 rounded-3xl p-8 text-left max-w-3xl mb-8 flex gap-5 shadow-xs relative overflow-hidden animate-fade-in">
-            <div className="absolute top-0 left-0 w-2 h-full bg-red-650"></div>
-            <div className="p-4 bg-red-50 rounded-2xl text-red-600 h-fit shrink-0">
-              <AlertTriangle size={32} />
-            </div>
-            <div>
-              <span className="inline-flex py-1 px-3 bg-red-105 rounded-lg text-red-800 text-xs font-bold font-mono tracking-wide uppercase">
-                Vendor Application Rejected
-              </span>
-              <h2 className="text-xl font-bold font-display text-gray-900 mt-3 mb-2">
-                We could not approve your garbage collector profile
-              </h2>
-              <div className="p-4 bg-red-50/50 rounded-2xl font-mono text-xs text-red-700 leading-relaxed mb-4">
-                <strong>Rejection Reason:</strong> {vendor?.rejection_reason || "Missing certified business license parameters / Non-operational location."}
-              </div>
-              <p className="text-xs text-gray-400">
-                Please edit and save your Profile details at the bottom navigation tab, updating your business name or operational PIN codes to re-trigger audited triggers.
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* OVERVIEW PANEL */}
         {activeTab === "overview" && (
           <div className="space-y-8 animate-fade-in">
-            {/* Highlights metrics */}
+             {/* Quick dashboard metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              
               <div className="bg-white/80 backdrop-blur-md p-6 rounded-[24px] border border-slate-200 shadow-xl shadow-slate-100/40 text-left relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-                <span className="block text-slate-400 font-bold text-[10px] tracking-wider uppercase">Active Assigned Jobs</span>
-                <span className="block text-3xl font-black text-slate-800 mt-1.5">{activeJobs.length}</span>
+                <span className="block text-slate-400 font-bold text-[10px] tracking-wider uppercase">Total Requests</span>
+                <span className="block text-3xl font-black text-slate-800 mt-1.5">{myRequests.length}</span>
                 <div className="absolute right-4 bottom-4 p-2.5 bg-slate-50 text-slate-500 rounded-2xl group-hover:bg-slate-100 transition-colors">
+                  <History size={20} />
+                </div>
+              </div>
+              
+              <div className="bg-white/80 backdrop-blur-md p-6 rounded-[24px] border border-amber-100 shadow-xl shadow-amber-50/40 text-left relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+                <span className="block text-amber-650 font-bold text-[10px] tracking-wider uppercase">Pending Verification</span>
+                <span className="block text-3xl font-black text-slate-800 mt-1.5">{pendingCount}</span>
+                <div className="absolute right-4 bottom-4 p-2.5 bg-amber-50 text-amber-500 rounded-2xl group-hover:bg-amber-100 transition-colors animate-pulse">
+                  <Clock size={20} />
+                </div>
+              </div>
+
+              <div className="bg-white/80 backdrop-blur-md p-6 rounded-[24px] border border-sky-100 shadow-xl shadow-sky-50/40 text-left relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+                <span className="block text-brand-sky-600 font-bold text-[10px] tracking-wider uppercase">Active Pickups</span>
+                <span className="block text-3xl font-black text-slate-800 mt-1.5">{inProgressCount}</span>
+                <div className="absolute right-4 bottom-4 p-2.5 bg-sky-50 text-brand-sky-500 rounded-2xl group-hover:bg-sky-100 transition-colors">
                   <Truck size={20} />
                 </div>
               </div>
 
-              <div className="bg-white/80 backdrop-blur-md p-6 rounded-[24px] border border-sky-150 shadow-xl shadow-sky-50/40 text-left relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-                <span className="block text-brand-sky-600 font-bold text-[10px] tracking-wider uppercase">Jobs Finished</span>
-                <span className="block text-3xl font-black text-slate-800 mt-1.5">{completedJobs.length}</span>
-                <div className="absolute right-4 bottom-4 p-2.5 bg-sky-50 text-brand-sky-500 rounded-2xl group-hover:bg-sky-100 transition-colors">
+              <div className="bg-white/80 backdrop-blur-md p-6 rounded-[24px] border border-emerald-100 shadow-xl shadow-emerald-50/40 text-left relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+                <span className="block text-brand-green-600 font-bold text-[10px] tracking-wider uppercase">Completed Orders</span>
+                <span className="block text-3xl font-black text-slate-800 mt-1.5">{completedCount}</span>
+                <div className="absolute right-4 bottom-4 p-2.5 bg-emerald-50 text-brand-green-600 rounded-2xl group-hover:bg-emerald-100 transition-colors">
                   <CheckCircle size={20} />
                 </div>
               </div>
-
-              <div className="bg-white/80 backdrop-blur-md p-6 rounded-[24px] border border-emerald-100 shadow-xl shadow-emerald-50/40 text-left relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-                <span className="block text-emerald-600 font-bold text-[10px] tracking-wider uppercase">Recovered Cargo (Kg)</span>
-                <span className="block text-3xl font-black text-slate-800 mt-1.5">{totalCompletedWeight.toFixed(1)}</span>
-                <div className="absolute right-4 bottom-4 p-2.5 bg-emerald-50 text-brand-green-600 rounded-2xl group-hover:bg-emerald-100 transition-colors">
-                  <Info size={20} />
-                </div>
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-md p-6 rounded-[24px] border border-teal-105 shadow-xl shadow-teal-50/40 text-left relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-                <span className="block text-teal-650 font-bold text-[10px] tracking-wider uppercase">Carbon Offset Equivalent</span>
-                <span className="block text-3xl font-black text-slate-800 mt-1.5">-{carbonOffsetCount.toFixed(1)} CO₂</span>
-                <div className="absolute right-4 bottom-4 p-2.5 bg-teal-50 text-teal-650 rounded-2xl group-hover:bg-teal-100 transition-colors">
-                  <Check size={20} />
-                </div>
-              </div>
-
             </div>
 
-            {/* In Progress Jobs Highlight */}
-            {isApproved && (
-              <div className="glass-card shadow-xl rounded-[28px] p-6 md:p-8 text-left hover:shadow-2xl transition-all duration-300">
-                <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6 font-display">
-                  <h3 className="font-bold text-gray-900 text-base">Your Active Collection Schedule</h3>
-                  <button onClick={() => setActiveTab("assigned")} className="text-xs text-brand-sky-600 font-bold hover:underline cursor-pointer">
-                    Manage Assignments
-                  </button>
-                </div>
+            {/* Quick Action Block */}
+            <div className="bg-gradient-to-br from-brand-green-600 via-emerald-600 to-teal-700 rounded-[32px] p-8 md:p-10 text-white relative shadow-2xl shadow-emerald-700/20 overflow-hidden flex flex-col md:flex-row justify-between items-center gap-8 mt-8 hover:shadow-emerald-600/30 transition-shadow duration-300">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -z-5 animate-pulse"></div>
+              <div className="text-left max-w-xl relative z-10">
+                <span className="inline-block bg-white/20 text-white text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full mb-3">
+                  Eco-Initiative Instant Form
+                </span>
+                <h2 className="text-2xl md:text-3xl font-black mb-3 leading-tight tracking-tight">Need a bulk pickup from your agency?</h2>
+                <p className="text-emerald-100 text-xs md:text-sm font-medium leading-relaxed opacity-90">
+                  Submit an interactive pickup request in seconds. Our verified nearby recycler agencies will immediately evaluate the live value rate and call to schedule collection!
+                </p>
+              </div>
+              <button 
+                onClick={() => setActiveTab("new-request")}
+                className="px-8 py-4 bg-white text-brand-green-700 hover:text-white hover:bg-brand-green-850 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer relative z-10 border border-transparent hover:border-white/20"
+              >
+                + Create Request
+              </button>
+            </div>
 
-                {activeJobs.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
-                      <Truck size={22} />
-                    </div>
-                    <h4 className="font-bold text-gray-700 text-sm">No Active Trips Dispatched</h4>
-                    <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">Wait for admins to assign incoming customer listings in your operational pin codes.</p>
+            {/* Recent Requests list overview */}
+            <div className="glass-card shadow-xl rounded-[28px] p-6 md:p-8 text-left hover:shadow-2xl transition-all duration-300">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+                <h3 className="font-bold text-gray-900 text-base">Your Active Requests</h3>
+                <button 
+                  onClick={() => { setActiveTab("history"); setHistoryFilter("all"); }}
+                  className="text-xs text-brand-green-700 font-bold hover:underline cursor-pointer"
+                >
+                  View Histories
+                </button>
+              </div>
+
+              {myRequests.filter(r => r.status !== "completed" && r.status !== "cancelled").length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                    <History size={26} />
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {activeJobs.map(job => {
-                      const customer = getCustomerProfile(job.customer_id);
-                      return (
-                        <div key={job.id} className="bg-white/55 border border-white/70 p-5 rounded-2xl hover:border-brand-sky-300 hover:shadow-lg transition-all duration-350 flex flex-col justify-between backdrop-blur-md">
-                          <div>
-                            <div className="flex justify-between items-center mb-3">
-                              <span className="font-mono text-[9px] font-bold text-gray-400">Job #{job.id}</span>
-                              <span className="px-2.5 py-0.5 rounded-full bg-brand-sky-100 text-brand-sky-800 border-none text-[9px] font-bold font-mono tracking-wider uppercase">
-                                {job.status}
-                              </span>
-                            </div>
-
-                            <h4 className="font-bold text-gray-800 text-sm font-display">{getCategoryName(job.category_id)}</h4>
-                            <p className="text-xs font-medium text-gray-550 mt-1 truncate">{customer.full_name} • Phone: {getMaskedPhone(customer.phone, job.status)}</p>
-                            <p className="text-xs text-gray-405 mt-2 line-clamp-2">{job.description}</p>
-                          </div>
-
-                          <div className="border-t border-gray-200/50 pt-3 mt-4 flex items-center justify-between text-xs">
-                            <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                              <MapPin size={10} /> {job.pincode}, {job.city}
+                  <h4 className="font-bold text-gray-700 text-sm">No Active Scrap Pickup Assignments</h4>
+                  <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">Create a collection request when ready. Your active tracking will display here.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {myRequests
+                    .filter(r => r.status !== "completed" && r.status !== "cancelled")
+                    .slice(0, 4)
+                    .map(request => (
+                      <div 
+                        key={request.id}
+                        className="bg-white/55 border border-white/70 p-5 rounded-2xl hover:border-brand-green-300 hover:shadow-lg transition-all duration-350 flex flex-col justify-between backdrop-blur-md"
+                      >
+                        <div className="text-left">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="font-bold text-xs text-gray-400 font-mono">Job #{request.id}</span>
+                            <span className={`px-2.5 py-0.5 rounded-full border text-[10px] font-bold font-mono tracking-wider uppercase ${getStatusColor(request.status)}`}>
+                              {request.status}
                             </span>
-                            <button
-                              onClick={() => setActiveTab("assigned")}
-                              className="px-3 py-1 bg-white border border-gray-200 text-brand-sky-600 font-bold text-[10px] rounded-lg cursor-pointer"
-                            >
-                              Open Job Controls
-                            </button>
+                          </div>
+                          
+                          <h4 className="font-bold text-gray-800 text-sm font-display">{getCategoryName(request.category_id)}</h4>
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{request.description}</p>
+                          
+                          <div className="flex items-center gap-1.5 mt-3 text-gray-400">
+                            <MapPin size={12} />
+                            <span className="text-[10px] font-semibold truncate max-w-full">{request.address}, {request.city}</span>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* ASSIGNED REQUESTS LIST */}
-        {activeTab === "assigned" && isApproved && (
-          <div className="space-y-6 text-left animate-fade-in">
-            <div className="pb-4 border-b border-gray-100">
-              <h2 className="text-xl font-bold text-gray-900 font-display">Manage Cargo Collections</h2>
-              <p className="text-xs text-gray-400 mt-1">Accept local assignments, acquire customer contact parameters, or tick runs finished.</p>
-            </div>
-
-            {myAssignedRequests.length === 0 ? (
-              <div className="glass-card p-16 rounded-[28px] text-center shadow-lg">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-350">
-                  <Truck size={26} />
-                </div>
-                <h4 className="font-bold text-gray-700 text-sm">No assignments found</h4>
-                <p className="text-xs text-gray-405 mt-1 max-w-sm mx-auto">Admins dispatch recycling requests here based on your registered operational pin codes.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {activeJobs.map(job => {
-                  const customer = getCustomerProfile(job.customer_id);
-                  return (
-                    <div key={job.id} className="glass-card p-5 md:p-6 rounded-[28px] hover:shadow-xl hover:scale-[1.01] transition-all duration-300 flex flex-col justify-between">
-                      <div>
-                        
-                        {/* Header metadata row */}
-                        <div className="flex justify-between items-center mb-4">
-                          <span className="font-mono text-[10px] text-gray-400 font-bold">REF: #{job.id}</span>
-                          <span className="inline-flex py-0.5 px-2.5 bg-brand-sky-100 text-brand-sky-850 rounded-full text-[9px] font-bold font-mono uppercase tracking-wider">
-                            Status: {job.status}
+                        <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-4">
+                          <span className="text-[10px] text-gray-400">
+                            Created: {new Date(request.created_at).toLocaleDateString("en-IN")}
                           </span>
-                        </div>
-
-                        <h3 className="font-bold text-gray-900 text-base font-display">{getCategoryName(job.category_id)}</h3>
-                        <p className="text-xs text-gray-500 mt-2 leading-relaxed">{job.description}</p>
-
-                        {/* Customer profile snippet */}
-                        <div className="mt-5 p-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs space-y-2.5">
-                          <div className="flex justify-between">
-                            <span className="text-gray-400">Customer Location:</span>
-                            <span className="font-bold text-gray-800">{customer.full_name}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-400">Mobile Parameter:</span>
-                            {["accepted", "in_progress"].includes(job.status) ? (
-                              <a href={`tel:${customer.phone}`} className="font-bold text-brand-sky-600 hover:underline flex items-center gap-1 font-mono">
-                                <Phone size={10} /> +91 {customer.phone}
-                              </a>
-                            ) : (
-                              <span className="font-semibold text-gray-400 bg-gray-200/50 p-0.5 px-1.5 rounded-sm h-fit text-[10px]" title="Accept job to unlock caller info">
-                                {getMaskedPhone(customer.phone, job.status)}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-400">Operational PIN:</span>
-                            <span className="font-semibold text-gray-700 font-mono">{job.pincode}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-400">Street Map:</span>
-                            <span className="font-semibold text-gray-700 max-w-[180px] text-right truncate">{job.address}</span>
-                          </div>
-                        </div>
-
-                        {/* Attached pictures */}
-                        {job.image_urls.length > 0 && (
-                          <div className="mt-4">
-                            <span className="block text-[10px] font-bold uppercase text-gray-400 mb-2">Customer Snap Previews</span>
-                            <div className="grid grid-cols-4 gap-2">
-                              {job.image_urls.map((url, idx) => (
-                                <div key={idx} className="rounded-lg overflow-hidden border border-gray-150 aspect-video select-none">
-                                  <img src={url} alt="attached waste snapshots" className="w-full h-full object-cover" />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Operations buttons bar based on status */}
-                      <div className="border-t border-gray-100 pt-5 mt-6 flex justify-between items-center gap-2">
-                        <span className="text-[10px] text-gray-400 font-medium">Assigned: {new Date(job.created_at).toLocaleDateString()}</span>
-                        
-                        <div className="flex gap-2">
-                          {job.status === "assigned" && (
-                            <>
-                              <button
-                                onClick={() => onDeclineAssignment(job.id)}
-                                className="px-3.5 py-2.5 border border-red-200 text-red-500 hover:bg-red-50 font-bold text-xs rounded-xl cursor-pointer"
-                              >
-                                Decline
-                              </button>
-                              <button
-                                onClick={() => onAcceptAssignment(job.id)}
-                                className="px-5 py-2.5 bg-brand-sky-500 hover:bg-brand-sky-600 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer"
-                              >
-                                Accept Run
-                              </button>
-                            </>
-                          )}
-
-                          {job.status === "accepted" && (
-                            <button
-                              onClick={() => onStartPickup(job.id)}
-                              className="px-5 py-2.5 bg-brand-sky-600 hover:bg-brand-sky-700 text-white font-bold text-[11px] rounded-xl shadow-xs flex items-center gap-1 cursor-pointer"
-                            >
-                              <Truck size={14} /> Start Dispatch Run
-                            </button>
-                          )}
-
-                          {job.status === "in_progress" && (
-                            <button
-                              onClick={() => setCompletingRequestId(job.id)}
-                              className="px-5 py-2.5 bg-brand-green-600 hover:bg-brand-green-700 text-white font-extrabold text-[11px] rounded-xl shadow-xs flex items-center gap-1 cursor-pointer"
-                            >
-                              <CheckCircle size={14} /> Mark Handover Finished
-                            </button>
-                          )}
+                          <button 
+                            onClick={() => { setSelectedRequest(request); }}
+                            className="px-3.5 py-1.5 bg-white border border-gray-200 text-gray-700 font-bold text-[10px] rounded-lg hover:bg-gray-50 shadow-xs cursor-pointer"
+                          >
+                            Track Status & Details
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* COMPLETED JOBS READ-ONLY PANEL */}
-        {activeTab === "completed" && isApproved && (
-          <div className="space-y-6 text-left animate-fade-in">
-            <div className="pb-4 border-b border-gray-100">
-              <h2 className="text-xl font-bold text-gray-900 font-display">Completed collections history</h2>
-              <p className="text-xs text-gray-405 mt-1">Read-only audit parameters of completed runs.</p>
-            </div>
-
-            {completedJobs.length === 0 ? (
-              <div className="glass-card p-16 rounded-[28px] text-center shadow-lg">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-350">
-                  <CheckCircle size={26} />
+                    ))}
                 </div>
-                <h4 className="font-bold text-gray-700 text-sm">No completed runs recorded</h4>
-                <p className="text-xs text-gray-400 mt-1">Legwork metadata settles here once completion is confirmed.</p>
-              </div>
-            ) : (
-              <div className="bg-white border border-gray-150 rounded-3xl overflow-hidden shadow-xs">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-50 text-xs font-bold uppercase text-gray-500 border-b border-gray-150">
-                    <tr>
-                      <th className="p-4">Ref ID</th>
-                      <th className="p-4">Customer</th>
-                      <th className="p-4">Category</th>
-                      <th className="p-4">Address Parameters</th>
-                      <th className="p-4">Your Completion Notes</th>
-                      <th className="p-4">Completion Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-y-gray-100">
-                    {completedJobs.map(job => {
-                      const customer = getCustomerProfile(job.customer_id);
-                      return (
-                        <tr key={job.id} className="hover:bg-gray-50/50 transition">
-                          <td className="p-4 font-mono font-bold text-xs text-gray-400 select-all">#{job.id}</td>
-                          <td className="p-4">
-                            <span className="block font-bold text-gray-800">{customer.full_name}</span>
-                            <span className="block text-[10px] text-gray-400 font-mono">+91 {customer.phone}</span>
-                          </td>
-                          <td className="p-4 text-xs font-bold text-gray-800">{getCategoryName(job.category_id)}</td>
-                          <td className="p-4 text-xs text-gray-500">
-                            <span className="block">{job.pincode}, {job.city}</span>
-                            <span className="block text-[10px] text-gray-400 truncate max-w-[150px]">{job.address}</span>
-                          </td>
-                          <td className="p-4 text-xs text-gray-600 italic max-w-xs truncate" title={job.notes}>
-                            {job.notes || "Not specified."}
-                          </td>
-                          <td className="p-4 text-xs text-gray-400">{new Date(job.updated_at).toLocaleDateString()}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 
-            {/* PROFILE TAB */}
-        {activeTab === "profile" && (
+        {/* CREATE PICKUP REQUEST FORM */}
+        {activeTab === "new-request" && (
           <div className="max-w-3xl glass-card rounded-[32px] p-6 md:p-10 text-left shadow-2xl animate-fade-in">
             <div className="pb-4 border-b border-gray-105 mb-6">
-              <h2 className="text-xl font-bold text-gray-900 font-display">Collector Credentials & Pincodes</h2>
-              <p className="text-xs text-gray-400 mt-1">Configure your logistical business identifier and operated cities/postals.</p>
+              <h2 className="text-xl font-bold text-gray-900 font-display">Schedule Free Doorstep Pickup</h2>
+              <p className="text-xs text-gray-400 mt-1 font-sans">Fill in waste descriptions, upload optional images, and tell vendors where to arrive.</p>
             </div>
 
-            {profileSuccessMsg && (
-              <div className="bg-brand-sky-50 border border-brand-sky-100 text-brand-sky-800 p-4 rounded-xl text-xs font-semibold mb-6 flex gap-2">
-                <Check size={16} /> {profileSuccessMsg}
+            {submitSuccess ? (
+              <div className="bg-brand-green-100 text-brand-green-800 border border-brand-green-200 p-8 rounded-2xl text-center flex flex-col items-center">
+                <CheckCircle className="text-brand-green-600 w-16 h-16 mb-4 animate-scale" />
+                <h3 className="text-lg font-bold">Scrap Pickup Scheduled!</h3>
+                <p className="text-xs mt-1 text-brand-green-700">Thank you. Your request is registered as PENDING and dispatched to an administrator for vendor allocation.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateSubmit} className="space-y-6">
+                
+                {/* Visual Alert */}
+                <div className="bg-brand-green-50 border border-brand-green-150 p-4 rounded-xl flex gap-3 text-brand-green-800 text-xs">
+                  <Info size={18} className="shrink-0" />
+                  <p className="leading-relaxed">
+                    <strong>Preloaded Info:</strong> We have attached details for customer <strong>{profile.full_name}</strong> (+91 {profile.phone}). Our collectors will use this line to initiate calls before cargo load.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Category of Scrap</label>
+                    <select
+                      value={formCategory}
+                      onChange={(e) => setFormCategory(e.target.value)}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-brand-green-500 focus:outline-hidden"
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.category_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Pincode (6-digit Indian PIN)</label>
+                    <input 
+                      type="text"
+                      maxLength={6}
+                      value={formPincode}
+                      onChange={(e) => setFormPincode(e.target.value)}
+                      placeholder="E.g. 400001 (Mumbai)"
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-brand-green-500 focus:outline-hidden"
+                    />
+                    {formErrors.pincode && (
+                      <p className="text-[10px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                        <AlertTriangle size={10} /> {formErrors.pincode}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Provide Scrap Description</label>
+                    <span className="text-[10px] font-semibold font-mono text-gray-400">
+                      {formDescription.length} / 500
+                    </span>
+                  </div>
+                  <textarea 
+                    rows={4}
+                    maxLength={500}
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder="E.g. Old textbooks, steel construction rods, or dead chargers. Mention estimated weight and pile size..."
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-brand-green-500 focus:outline-hidden"
+                  ></textarea>
+                  {formErrors.description && (
+                    <p className="text-[10px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                      <AlertTriangle size={10} /> {formErrors.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Drag-and-Drop Image Uploader */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                    Upload Waste Images (Optional - Max 5 snaps)
+                  </label>
+                  
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`
+                      border-2 border-dashed rounded-2xl p-6 text-center transition flex flex-col items-center justify-center cursor-pointer
+                      ${isDragOver ? "border-brand-green-500 bg-brand-green-50" : "border-gray-200 bg-gray-50 hover:bg-gray-100/50"}
+                    `}
+                  >
+                    <input 
+                      type="file"
+                      ref={fileInputRef}
+                      multiple
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <Camera className="text-gray-450 w-8 h-8 mb-2" />
+                    <span className="block text-xs font-bold text-gray-700">Drag & Drop Waste snapshots here</span>
+                    <span className="block text-[10px] text-gray-400 mt-1">Or click to browse storage files (PNG / JPEG)</span>
+                  </div>
+
+                  {/* Thumbnail gallery */}
+                  {formImages.length > 0 && (
+                    <div className="grid grid-cols-5 gap-3 mt-4">
+                      {formImages.map((b64, index) => (
+                        <div key={index} className="relative group rounded-lg overflow-hidden border border-gray-150 aspect-square">
+                          <img src={b64} alt="waste preview" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removeUploadedImage(index); }}
+                            className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 shadow"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Street Address</label>
+                    <input 
+                      type="text"
+                      value={formAddress}
+                      onChange={(e) => setFormAddress(e.target.value)}
+                      placeholder="E.g. Flat, building, society unit..."
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-brand-green-500 focus:outline-hidden"
+                    />
+                    {formErrors.address && (
+                      <p className="text-[10px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                        <AlertTriangle size={10} /> {formErrors.address}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">City</label>
+                      <input 
+                        type="text"
+                        value={formCity}
+                        onChange={(e) => setFormCity(e.target.value)}
+                        placeholder="E.g. Kalyan"
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-brand-green-500 focus:outline-hidden"
+                      />
+                      {formErrors.city && (
+                        <p className="text-[10px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                          <AlertTriangle size={10} /> {formErrors.city}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">State</label>
+                      <select
+                        value={formStateVal}
+                        onChange={(e) => setFormStateVal(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-brand-green-500 focus:outline-hidden"
+                      >
+                        {INDIAN_STATES.map((st) => (
+                          <option key={st} value={st}>
+                            {st}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-4 bg-brand-green-600 hover:bg-brand-green-700 text-white font-extrabold text-sm tracking-widest rounded-xl shadow-md uppercase cursor-pointer"
+                >
+                  Create Recycling Request ♻️
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* MY REQUESTS / HISTORY */}
+        {activeTab === "history" && (
+          <div className="space-y-6 text-left animate-fade-in">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 font-display">Recycling Request History</h2>
+                <p className="text-xs text-gray-400 mt-1">Track progress, view logs, or cancel pending collections.</p>
+              </div>
+
+              {/* Status Filters */}
+              <div className="flex gap-2 bg-white p-1 rounded-xl border border-gray-150 overflow-x-auto max-w-full">
+                <FilterBtn active={historyFilter === "all"} onClick={() => setHistoryFilter("all")} label="All" />
+                <FilterBtn active={historyFilter === "pending"} onClick={() => setHistoryFilter("pending")} label="Pending" />
+                <FilterBtn active={historyFilter === "assigned"} onClick={() => setHistoryFilter("assigned")} label="Assigned" />
+                <FilterBtn active={historyFilter === "accepted"} onClick={() => setHistoryFilter("accepted")} label="Accepted" />
+                <FilterBtn active={historyFilter === "completed"} onClick={() => setHistoryFilter("completed")} label="Completed" />
+                <FilterBtn active={historyFilter === "cancelled"} onClick={() => setHistoryFilter("cancelled")} label="Cancelled" />
+              </div>
+            </div>
+
+            {filteredHistory.length === 0 ? (
+              <div className="glass-card p-16 rounded-[28px] text-center shadow-lg">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                  <History size={26} />
+                </div>
+                <h4 className="font-bold text-gray-700 text-sm">No Scrap Request Entries Matches Filter</h4>
+                <p className="text-xs text-gray-400 mt-1">Adjust filters or submit a new doorstep collection request.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {filteredHistory.map((request) => (
+                  <div 
+                    key={request.id} 
+                    className="glass-card p-5 rounded-2xl hover:shadow-xl hover:scale-[1.01] transition-all duration-300 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="font-mono text-[10px] text-gray-400 font-semibold">REF: #{request.id}</span>
+                        <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-wider font-mono uppercase ${getStatusColor(request.status)}`}>
+                          {request.status}
+                        </span>
+                      </div>
+
+                      <h3 className="font-bold text-gray-800 text-base font-display">{getCategoryName(request.category_id)}</h3>
+                      <p className="text-xs text-gray-500 mt-2 line-clamp-3 leading-relaxed">{request.description}</p>
+
+                      <div className="border-t border-gray-50 pt-3 mt-4 space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Pincode:</span>
+                          <span className="font-semibold text-gray-700">{request.pincode}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">City Location:</span>
+                          <span className="font-semibold text-gray-700">{request.city}</span>
+                        </div>
+                        <div className="flex justify-between items-center gap-1 overflow-hidden">
+                          <span className="text-gray-400 shrink-0">Assigned Vendor:</span>
+                          <span className="font-bold text-brand-green-700 truncate">{getVendorName(request.vendor_id)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-4 mt-6 flex justify-between items-center">
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(request.created_at).toLocaleDateString("en-IN")}
+                      </span>
+                      
+                      <div className="flex gap-2">
+                        {request.status === "pending" && (
+                          <button 
+                            onClick={async () => {
+                              if (confirm("Are you sure you want to cancel this pickup request?")) {
+                                await supabase.from('pickup_requests').update({ status: 'cancelled' }).eq('id', request.id);
+  setLocalRequests(localRequests.map(r => r.id === request.id ? { ...r, status: 'cancelled' } : r));
+  onCancelRequest(request.id);
+                              }
+                            }}
+                            className="p-1 px-2 border border-red-200 text-red-500 hover:bg-red-50 rounded-lg text-[10px] font-bold cursor-pointer"
+                          >
+                            <Trash size={12} className="inline mr-1" /> Cancel
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setSelectedRequest(request)}
+                          className="px-3 py-1.5 bg-brand-green-600 text-white hover:bg-brand-green-700 font-bold text-[10px] rounded-lg shadow-xs cursor-pointer"
+                        >
+                          Details & Timeline
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* PROFILE CARD TAB */}
+        {activeTab === "profile" && (
+          <div className="max-w-2xl glass-card rounded-[32px] p-6 md:p-10 text-left shadow-2xl animate-fade-in">
+            <div className="pb-4 border-b border-gray-105 mb-6">
+              <h2 className="text-xl font-bold text-gray-900 font-display">Manage Account Credentials</h2>
+              <p className="text-xs text-gray-400 mt-1">Edit default billing/shipping collections details used below forms.</p>
+            </div>
+
+            {profileMessage && (
+              <div className={`p-4 rounded-xl text-xs font-semibold border mb-6 flex gap-2 ${
+                profileMessage.type === "success" 
+                  ? "bg-brand-green-100 text-brand-green-800 border-brand-green-200" 
+                  : "bg-red-50 text-red-700 border-red-100"
+              }`}>
+                <Info size={16} /> {profileMessage.text}
               </div>
             )}
 
-            <form onSubmit={handleProfileUpdate} className="space-y-6">
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleProfileSubmit} className="space-y-6">
+              <div className="flex items-center gap-4 pb-4">
+                <img className="w-16 h-16 rounded-full object-cover border-4 border-brand-green-100" src={profile.avatar_url || "https://images.unsplash.com/photo-1544005313-94ddf0286df2"} alt="Customer Avatar" />
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Agency Business Identifier Name</label>
-                  <input 
-                    type="text"
-                    required
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-brand-sky-500 focus:outline-hidden uppercase font-semibold"
-                    placeholder="E.g. Kalyan Green Recyclers"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Operated Area Pin codes (Comma separated)</label>
-                  <input 
-                    type="text"
-                    required
-                    value={serviceAreasRaw}
-                    onChange={(e) => setServiceAreasRaw(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-brand-sky-500 focus:outline-hidden font-mono"
-                    placeholder="E.g. 400001, Kalyan, Thane, 421301"
-                  />
-                  <span className="text-[10px] text-gray-450 mt-1 block">Separate pin codes or municipalities with commas.</span>
+                  <h3 className="font-bold text-gray-800 text-base">{profile.full_name}</h3>
+                  <span className="text-xs text-gray-400 font-medium">Joined: {new Date(profile.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 pt-5">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Registered Email Address</label>
+                <input 
+                  type="email"
+                  disabled
+                  value={profile.email} 
+                  className="w-full bg-gray-50 border border-gray-150 rounded-xl px-4 py-3 text-sm text-gray-400 cursor-not-allowed"
+                />
+                <span className="text-[10px] text-gray-400 mt-1 block">Account emails cannot be changed once authenticated.</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Authorized Owner Full Name</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Full Legal Name</label>
                   <input 
                     type="text"
-                    required
-                    value={vendorFullName}
-                    onChange={(e) => setVendorFullName(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-brand-sky-500 focus:outline-hidden"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    placeholder="E.g. Aarav Mehta"
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-brand-green-500 focus:outline-hidden"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Authorized Phone Contact Line</label>
-                  <div className="relative font-mono">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Mobile Phone Number</label>
+                  <div className="relative">
                     <span className="absolute left-4 top-3.5 text-xs text-gray-400 font-extrabold">+91</span>
                     <input 
                       type="text"
                       maxLength={10}
-                      required
-                      value={vendorPhone}
-                      onChange={(e) => setVendorPhone(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-sm focus:border-brand-sky-500 focus:outline-hidden"
+                      value={profilePhone}
+                      onChange={(e) => setProfilePhone(e.target.value)}
+                      placeholder="9876543210"
+                      className="w-full bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-sm focus:border-brand-green-500 focus:outline-hidden font-mono"
                     />
                   </div>
                 </div>
@@ -787,9 +966,9 @@ export function VendorDashboard({
 
               <button
                 type="submit"
-                className="w-full py-4 bg-brand-sky-500 hover:bg-brand-sky-600 text-white font-extrabold text-xs tracking-widest rounded-xl shadow-md uppercase transition cursor-pointer"
+                className="w-full py-3.5 bg-brand-green-600 hover:bg-brand-green-700 text-white font-bold text-xs tracking-widest rounded-xl shadow-md uppercase transition cursor-pointer"
               >
-                Save Collector Profile & Area Pin codes
+                Save Profile Records
               </button>
             </form>
           </div>
@@ -797,56 +976,183 @@ export function VendorDashboard({
 
       </main>
 
-      {/* CONFIRMATION DIALOG FOR MARKING HANDOVER COMPLETED */}
-      {completingRequestId && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4" onClick={() => setCompletingRequestId(null)}>
+      {/* MODAL WINDOW FOR REQUEST DETAILS & TIMELINE */}
+      {selectedRequest && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4" onClick={() => setSelectedRequest(null)}>
           <div 
-            className="glass-card rounded-[32px] w-full max-w-md shadow-2xl shadow-slate-900/10 p-6 md:p-8 animate-slide-up text-left border border-white/60"
+            className="glass-card rounded-[32px] w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl shadow-slate-900/10 p-6 md:p-10 text-left animate-slide-up border border-white/60"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
-              <h3 className="font-extrabold text-gray-900 text-base font-display flex items-center gap-2">
-                <CheckCircle className="text-brand-green-600" size={18} /> Confirm Handover Weight & Payout
-              </h3>
-              <button onClick={() => setCompletingRequestId(null)} className="text-gray-400 hover:text-gray-600">
-                <X size={18} />
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
+              <div>
+                <span className="text-[10px] font-bold text-gray-400 font-mono uppercase">Ref: #{selectedRequest.id}</span>
+                <h3 className="font-extrabold text-gray-900 text-lg md:text-xl font-display mt-0.5">
+                  {getCategoryName(selectedRequest.category_id)} Pickup Details
+                </h3>
+              </div>
+              <button onClick={() => setSelectedRequest(null)} className="p-1 px-2.5 hover:bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-bold text-xs cursor-pointer">
+                Close
               </button>
             </div>
 
-            <form onSubmit={submitPickupCompletion} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-550 mb-2">Transaction Logs / Scale Weight Notes</label>
-                <textarea 
-                  required
-                  rows={3}
-                  value={completionNotes}
-                  onChange={(e) => setCompletionNotes(e.target.value)}
-                  placeholder="E.g. Weighed 15kg scrap steel. Paid Customer ₹300 directly via GPay transfer. Dispatched to regional depot."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:border-brand-green-500 focus:bg-white focus:outline-hidden"
-                ></textarea>
-                <span className="text-[10px] text-gray-400 mt-1 block leading-normal">This handover note is visible on the customer's permanent timeline tracking.</span>
+            {/* Details Content */}
+            <div className="space-y-6">
+              
+              {/* Timeline Graphic */}
+              <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                <span className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Request Status Timeline</span>
+                <div className="grid grid-cols-5 gap-2 relative">
+                  <TimelineStep active={true} done={true} index={1} label="Pending" />
+                  <TimelineStep active={["assigned", "accepted", "in_progress", "completed"].includes(selectedRequest.status)} done={["assigned", "accepted", "in_progress", "completed"].includes(selectedRequest.status)} index={2} label="Assigned" />
+                  <TimelineStep active={["accepted", "in_progress", "completed"].includes(selectedRequest.status)} done={["accepted", "in_progress", "completed"].includes(selectedRequest.status)} index={3} label="Accepted" />
+                  <TimelineStep active={["in_progress", "completed"].includes(selectedRequest.status)} done={["in_progress", "completed"].includes(selectedRequest.status)} index={4} label="In Progress" />
+                  <TimelineStep active={selectedRequest.status === "completed"} done={selectedRequest.status === "completed"} index={5} label="Completed" />
+                </div>
+                {selectedRequest.status === "cancelled" && (
+                  <div className="mt-4 p-2 bg-red-50 text-red-700 rounded-lg text-xs font-semibold text-center border border-red-100 flex items-center justify-center gap-2">
+                    <AlertTriangle size={14} /> Request cancelled by Customer
+                  </div>
+                )}
               </div>
 
-              <div className="flex gap-2 justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => setCompletingRequestId(null)}
-                  className="px-4 py-2 bg-gray-100 text-gray-600 font-bold text-xs rounded-xl hover:bg-gray-205 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-brand-green-600 hover:bg-brand-green-700 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer"
-                >
-                  Verify Permanent Completion ✓
-                </button>
+              {/* Grid content split info and images */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                <div className="space-y-4">
+                  <span className="block text-xs font-bold uppercase tracking-wider text-gray-400">Information Logs</span>
+                  <div className="space-y-3.5">
+                    <div>
+                      <span className="block text-[10px] uppercase font-bold text-gray-400">Assigned Recycler</span>
+                      <span className="font-extrabold text-brand-green-800 text-sm">{getVendorName(selectedRequest.vendor_id)}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] uppercase font-bold text-gray-400">Pincode Area</span>
+                      <span className="font-semibold text-gray-700">{selectedRequest.pincode}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] uppercase font-bold text-gray-400">Street Address</span>
+                      <span className="font-semibold text-gray-700">{selectedRequest.address}, {selectedRequest.city}, {selectedRequest.state}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] uppercase font-bold text-gray-400">Full Description</span>
+                      <p className="text-gray-500 leading-relaxed text-xs">{selectedRequest.description}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <span className="block text-xs font-bold uppercase tracking-wider text-gray-400">Uploaded Snapshots</span>
+                  {selectedRequest.image_urls.length === 0 ? (
+                    <div className="bg-gray-50 border border-gray-150 rounded-2xl h-40 flex flex-col items-center justify-center text-gray-400 text-xs">
+                      <Camera size={22} className="mb-2" /> No pictures attached
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 max-h-[220px] overflow-y-auto">
+                      {selectedRequest.image_urls.map((url, idx) => (
+                        <div key={idx} className="rounded-xl overflow-hidden border border-gray-100 aspect-video">
+                          <img src={url} alt="attached waste pile" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedRequest.notes && (
+                    <div className="bg-brand-sky-50 p-4 rounded-xl border border-brand-sky-100 text-brand-sky-900 text-xs text-left">
+                      <span className="font-bold block mb-1">📋 Vendor Handover Notes:</span>
+                      <p className="italic">{selectedRequest.notes}</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </form>
+
+              {/* Bottom footer controls */}
+              <div className="border-t border-gray-100 pt-4 flex justify-between items-center text-xs">
+                <span className="text-gray-450 font-medium">Logged on: {new Date(selectedRequest.created_at).toLocaleString()}</span>
+                {selectedRequest.status === "pending" && (
+                  <button 
+                    onClick={async () => {
+                              if (confirm("Are you sure you want to cancel this request?")) {
+                        await supabase.from('pickup_requests').update({ status: 'cancelled' }).eq('id', selectedRequest.id);
+  setLocalRequests(localRequests.map(r => r.id === selectedRequest.id ? { ...r, status: 'cancelled' } : r));
+  onCancelRequest(selectedRequest.id);
+                        setSelectedRequest(null);
+                      }
+                    }}
+                    className="py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md cursor-pointer"
+                  >
+                    Cancel This Request
+                  </button>
+                )}
+              </div>
+
+            </div>
           </div>
         </div>
       )}
 
+    </div>
+  );
+}
+
+// Sub components helper
+interface SidebarNavBtnProps {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}
+
+function SidebarNavBtn({ active, onClick, icon, label }: SidebarNavBtnProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer
+        ${active 
+          ? "bg-brand-green-100 text-brand-green-700 border-l-4 border-brand-green-600" 
+          : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+        }
+      `}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function FilterBtn({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer
+        ${active 
+          ? "bg-brand-green-600 text-white shadow-sm" 
+          : "text-gray-550 hover:bg-gray-100"
+        }
+      `}
+    >
+      {label}
+    </button>
+  );
+}
+
+function TimelineStep({ active, done, index, label }: { active: boolean; done: boolean; index: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className={`
+        w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] transition-all relative z-10
+        ${done 
+          ? 'bg-brand-green-500 text-white ring-4 ring-brand-green-100' 
+          : active 
+            ? 'bg-white border-2 border-brand-green-500 text-brand-green-600 animate-pulse' 
+            : 'bg-white border text-gray-300'
+        }
+      `}>
+        {done ? "✓" : index}
+      </div>
+      <span className={`block text-[8px] md:text-[10px] font-bold mt-2 truncate max-w-full ${active ? 'text-brand-green-700 font-extrabold' : 'text-gray-400'}`}>
+        {label}
+      </span>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Profile, 
   Vendor, 
@@ -32,6 +32,7 @@ import {
   Recycle,
   Globe
 } from "lucide-react";
+import { supabase } from "../lib/supabase";
 import { SubdomainsPage } from "./pages/SubdomainsPage";
 
 interface AdminDashboardProps {
@@ -66,6 +67,28 @@ export function AdminDashboard({
   onDeleteUser
 }: AdminDashboardProps) {
   // Navigation tabs
+  const [localProfiles, setLocalProfiles] = useState<Profile[]>([]);
+  const [localVendors, setLocalVendors] = useState<Vendor[]>([]);
+  const [localRequests, setLocalRequests] = useState<PickupRequest[]>([]);
+  const [localNotifs, setLocalNotifs] = useState<Notification[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: profs } = await supabase.from('profiles').select('*');
+      if (profs) setLocalProfiles(profs);
+
+      const { data: vends } = await supabase.from('vendors').select('*');
+      if (vends) setLocalVendors(vends);
+
+      const { data: reqs } = await supabase.from('pickup_requests').select('*').order('created_at', { ascending: false });
+      if (reqs) setLocalRequests(reqs);
+
+      const { data: notifs } = await supabase.from('notifications').select('*');
+      if (notifs) setLocalNotifs(notifs);
+    };
+    fetchData();
+  }, []);
+
   const [activeTab, setActiveTab] = useState<"overview" | "requests" | "vendors" | "customers" | "subdomains">("overview");
 
   // Search & Filter state
@@ -86,16 +109,16 @@ export function AdminDashboard({
   const [previewRequestDetail, setPreviewRequestDetail] = useState<PickupRequest | null>(null);
 
   // Statistics summaries
-  const customerCount = profiles.filter(p => p.role === "customer").length;
-  const approvedVendorsCount = vendors.filter(v => v.verification_status === "approved").length;
-  const pendingVendorsCount = vendors.filter(v => v.verification_status === "pending").length;
-  const totalRequestsCount = requests.length;
-  const pendingRequestsCount = requests.filter(r => r.status === "pending").length;
-  const completedRequestsCount = requests.filter(r => r.status === "completed").length;
+  const customerCount = localProfiles.filter(p => p.role === "customer").length;
+  const approvedVendorsCount = localVendors.filter(v => v.verification_status === "approved").length;
+  const pendingVendorsCount = localVendors.filter(v => v.verification_status === "pending").length;
+  const totalRequestsCount = localRequests.length;
+  const pendingRequestsCount = localRequests.filter(r => r.status === "pending").length;
+  const completedRequestsCount = localRequests.filter(r => r.status === "completed").length;
 
   // Joint queries helper
   const getProfileForId = (id: string) => {
-    return profiles.find(p => p.id === id) || {
+    return localProfiles.find(p => p.id === id) || {
       full_name: "Deleted User",
       email: "deleted@wastedge.in",
       phone: "0000000000"
@@ -107,10 +130,10 @@ export function AdminDashboard({
   };
 
   // approved vendors for dropdown assign allocation
-  const approvedVendorsList = vendors
+  const approvedVendorsList = localVendors
     .filter(v => v.verification_status === "approved")
     .map(v => {
-      const p = profiles.find(prof => prof.id === v.user_id);
+      const p = localProfiles.find(prof => prof.id === v.user_id);
       return {
         vendor_id: v.id,
         user_id: v.user_id, // profile id
@@ -119,7 +142,7 @@ export function AdminDashboard({
     });
 
   // Filters Requests list
-  const filteredRequests = requests.filter(req => {
+  const filteredRequests = localRequests.filter(req => {
     const customer = getProfileForId(req.customer_id);
     const catName = getCategoryName(req.category_id);
     const searchString = `${req.id} ${customer.full_name} ${catName} ${req.pincode} ${req.city}`.toLowerCase();
@@ -129,14 +152,14 @@ export function AdminDashboard({
   });
 
   // Filters vendors
-  const filteredVendors = vendors.filter(v => {
-    const p = profiles.find(prof => prof.id === v.user_id);
+  const filteredVendors = localVendors.filter(v => {
+    const p = localProfiles.find(prof => prof.id === v.user_id);
     const searchString = `${v.business_name} ${p?.full_name || ""} ${p?.email || ""} ${p?.phone || ""}`.toLowerCase();
     return searchString.includes(vendorSearch.toLowerCase());
   });
 
   // Filters customers
-  const filteredCustomers = profiles
+  const filteredCustomers = localProfiles
     .filter(p => p.role === "customer")
     .filter(p => {
       const searchString = `${p.full_name} ${p.email} ${p.phone}`.toLowerCase();
@@ -365,7 +388,7 @@ export function AdminDashboard({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {vendors
+                    {localVendors
                       .filter(v => v.verification_status === "pending")
                       .slice(0, 3)
                       .map(v => {
@@ -415,7 +438,7 @@ export function AdminDashboard({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {requests
+                    {localRequests
                       .filter(r => r.status === "pending")
                       .slice(0, 3)
                       .map(req => {
@@ -561,16 +584,18 @@ export function AdminDashboard({
                               <span className="text-xs text-gray-400 italic">Terminated run</span>
                             ) : (
                               <select
-                                value={req.vendor_id || ""}
-                                onChange={(e) => onAssignVendor(req.id, e.target.value)}
+                                value={req.status}
+                                onChange={async (e) => {
+                                  const newStatus = e.target.value;
+                                  if (!newStatus) return;
+                                  await supabase.from('pickup_requests').update({ status: newStatus }).eq('id', req.id);
+                                  setLocalRequests(localRequests.map(r => r.id === req.id ? { ...r, status: newStatus as PickupRequestStatus } : r));
+                                }}
                                 className="bg-white border border-gray-200 select-xs text-[11px] rounded-lg p-1.5 font-sans"
                               >
-                                <option value="">-- Choose Vendor --</option>
-                                {approvedVendorsList.map(v => (
-                                  <option key={v.vendor_id} value={v.user_id}>
-                                    {v.displayName}
-                                  </option>
-                                ))}
+                                <option value="pending">Pending</option>
+                                <option value="in_progress">Dispatched (In Progress)</option>
+                                <option value="completed">Completed</option>
                               </select>
                             )}
                           </td>
@@ -753,7 +778,7 @@ export function AdminDashboard({
                   </thead>
                   <tbody className="divide-y divide-gray-105">
                     {filteredCustomers.map(customer => {
-                      const clientRequestsCount = requests.filter(r => r.customer_id === customer.id).length;
+                      const clientRequestsCount = localRequests.filter(r => r.customer_id === customer.id).length;
                       return (
                         <tr key={customer.id} className="hover:bg-gray-50/50 transition">
                           <td className="p-4 flex items-center gap-2.5">
