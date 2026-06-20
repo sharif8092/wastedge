@@ -181,7 +181,7 @@ export function AboutPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
               { icon: <Mail size={20} />, title: "Email Us", detail: "info@wastedge.in", href: "mailto:info@wastedge.in" },
-              { icon: <Phone size={20} />, title: "Call Us", detail: "+91 88000 00000", href: "tel:+918800000000" },
+              { icon: <Phone size={20} />, title: "Call Us", detail: "+91 98103 29454", href: "tel:+919810329454" },
               { icon: <MapPin size={20} />, title: "Our Office", detail: "Okhla, New Delhi – 110020", href: "#" },
             ].map((c) => (
               <a key={c.title} href={c.href}

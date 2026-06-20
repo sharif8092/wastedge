@@ -106,9 +106,9 @@ export function TermsPage() {
               <Mail size={15} className="text-brand-green-600" />
               legal@wastedge.in
             </a>
-            <a href="tel:+918800000000" className="flex items-center gap-2.5 text-sm text-brand-green-700 font-semibold hover:underline">
+            <a href="tel:+919810329454" className="flex items-center gap-2.5 text-sm text-brand-green-700 font-semibold hover:underline">
               <Phone size={15} className="text-brand-green-600" />
-              +91 88000 00000
+              +91 98103 29454
             </a>
           </div>
           <div className="mt-4 p-3 bg-brand-green-50 rounded-xl border border-brand-green-100 text-xs text-gray-500 leading-relaxed">

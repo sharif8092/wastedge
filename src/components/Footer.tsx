@@ -34,7 +34,7 @@ export function Footer() {
               <ArrowRight size={14} />
             </Link>
             <a
-              href="tel:+918800000000"
+              href="tel:+919810329454"
               className="inline-flex items-center justify-center gap-2 px-8 py-3.5 border-2 border-white/40 text-white font-bold text-sm rounded-xl hover:bg-white/10 transition-all"
             >
               <Phone size={16} />
@@ -66,7 +66,7 @@ export function Footer() {
             </div>
             <div className="flex items-center gap-2 text-gray-400">
               <Phone size={13} className="shrink-0 text-brand-green-500" />
-              <span>+91 88000 00000</span>
+              <span>+91 98103 29454</span>
             </div>
             <div className="flex items-center gap-2 text-gray-400">
               <Mail size={13} className="shrink-0 text-brand-green-500" />

@@ -105,11 +105,11 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             <a
-              href="tel:+918800000000"
+              href="tel:+919810329454"
               className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-green-700 font-semibold transition-colors"
             >
               <Phone size={14} />
-              <span>+91 88000 00000</span>
+              <span>+91 98103 29454</span>
             </a>
             {activeUser ? (
               <button
