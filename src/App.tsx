@@ -28,6 +28,12 @@ function LoginPage({
   handleLoginSubmit,
   triggerToast,
   setRegisterRoleField,
+  loginMethod, setLoginMethod,
+  loginPhone, setLoginPhone,
+  otp, setOtp,
+  showOtpInput,
+  handleSendOtp,
+  handleVerifyOtp,
 }: any) {
   const navigate = useNavigate();
   return (
@@ -54,27 +60,74 @@ function LoginPage({
             </div>
           )}
 
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Email Address</label>
-              <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
-                placeholder="E.g. customer@wastedge.in"
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-800 placeholder:text-gray-400 transition-all" />
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider">Password</label>
-                <button type="button" onClick={() => triggerToast("Password reset email sent to your inbox.", "info")}
-                  className="text-xs text-brand-green-600 hover:underline font-bold cursor-pointer">Forgot?</button>
-              </div>
-              <input type="password" required value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-800 transition-all" />
-            </div>
-            <button type="submit"
-              className="w-full py-4 bg-brand-green-600 hover:bg-brand-green-700 text-white font-black text-sm rounded-xl shadow-md shadow-brand-green-200 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2">
-              Sign In <ArrowRight size={16} />
-            </button>
+          <div className="flex gap-2 mb-5 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
+            {(["email", "phone"] as const).map(method => (
+              <button key={method} type="button" onClick={() => setLoginMethod(method)}
+                className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                  loginMethod === method
+                    ? "bg-brand-green-600 text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}>
+                {method === "email" ? "✉️ Email" : "📱 Phone OTP"}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={loginMethod === 'email' ? handleLoginSubmit : (showOtpInput ? handleVerifyOtp : handleSendOtp)} className="space-y-4">
+            {loginMethod === 'email' ? (
+              <>
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Email Address</label>
+                  <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
+                    placeholder="E.g. customer@wastedge.in"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-800 placeholder:text-gray-400 transition-all" />
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider">Password</label>
+                    <button type="button" onClick={() => triggerToast("Password reset email sent to your inbox.", "info")}
+                      className="text-xs text-brand-green-600 hover:underline font-bold cursor-pointer">Forgot?</button>
+                  </div>
+                  <input type="password" required value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-800 transition-all" />
+                </div>
+                <button type="submit"
+                  className="w-full py-4 bg-brand-green-600 hover:bg-brand-green-700 text-white font-black text-sm rounded-xl shadow-md shadow-brand-green-200 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2">
+                  Sign In <ArrowRight size={16} />
+                </button>
+              </>
+            ) : (
+              <>
+                {!showOtpInput ? (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Mobile Number (+91)</label>
+                      <input type="tel" required value={loginPhone} onChange={e => setLoginPhone(e.target.value)}
+                        placeholder="9876543210" maxLength={10}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-800 placeholder:text-gray-400 transition-all" />
+                    </div>
+                    <button type="submit"
+                      className="w-full py-4 bg-brand-green-600 hover:bg-brand-green-700 text-white font-black text-sm rounded-xl shadow-md shadow-brand-green-200 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2">
+                      Send OTP <ArrowRight size={16} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Enter OTP</label>
+                      <input type="text" required value={otp} onChange={e => setOtp(e.target.value)}
+                        placeholder="123456" maxLength={6}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-800 placeholder:text-gray-400 transition-all tracking-widest text-center" />
+                    </div>
+                    <button type="submit"
+                      className="w-full py-4 bg-brand-green-600 hover:bg-brand-green-700 text-white font-black text-sm rounded-xl shadow-md shadow-brand-green-200 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2">
+                      Verify OTP <CheckCircle size={16} />
+                    </button>
+                  </>
+                )}
+              </>
+            )}
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-6">
@@ -239,6 +292,11 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
+  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
+  const [loginPhone, setLoginPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [showOtpInput, setShowOtpInput] = useState(false);
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
@@ -253,6 +311,52 @@ export default function App() {
       setLoginError(error.message);
     } else {
       triggerToast(`Signed in successfully.`);
+      navigate("/");
+    }
+  };
+
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    if (!loginPhone || loginPhone.length !== 10) { setLoginError("Please enter a valid 10-digit phone number."); return; }
+    
+    const { error } = await supabase.auth.signInWithOtp({ phone: `+91${loginPhone}` });
+    if (error) {
+      setLoginError(error.message);
+    } else {
+      setShowOtpInput(true);
+      triggerToast("OTP sent successfully to your phone.", "info");
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    if (!otp || otp.length !== 6) { setLoginError("Please enter a valid 6-digit OTP."); return; }
+
+    const { data, error } = await supabase.auth.verifyOtp({ phone: `+91${loginPhone}`, token: otp, type: 'sms' });
+    if (error) {
+      setLoginError(error.message);
+      return;
+    }
+
+    if (data.user) {
+      // Check if profile exists
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle();
+      
+      if (!profile) {
+        // Insert basic profile
+        await supabase.from('profiles').insert([
+          {
+            id: data.user.id,
+            email: data.user.email || null,
+            full_name: 'User',
+            phone: loginPhone,
+            role: 'customer'
+          }
+        ]);
+      }
+      triggerToast("Signed in successfully.");
       navigate("/");
     }
   };
@@ -410,6 +514,12 @@ export default function App() {
             loginError={loginError} handleLoginSubmit={handleLoginSubmit}
             triggerToast={triggerToast}
             setRegisterRoleField={setRegisterRoleField}
+            loginMethod={loginMethod} setLoginMethod={setLoginMethod}
+            loginPhone={loginPhone} setLoginPhone={setLoginPhone}
+            otp={otp} setOtp={setOtp}
+            showOtpInput={showOtpInput}
+            handleSendOtp={handleSendOtp}
+            handleVerifyOtp={handleVerifyOtp}
           />
         } />
         <Route path="/register" element={
