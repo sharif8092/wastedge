@@ -344,18 +344,21 @@ export default function App() {
       // Check if profile exists
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle();
       
+      let finalProfile = profile;
       if (!profile) {
         // Insert basic profile
-        await supabase.from('profiles').insert([
-          {
-            id: data.user.id,
-            email: data.user.email || null,
-            full_name: 'User',
-            phone: loginPhone,
-            role: 'customer'
-          }
-        ]);
+        const newProfile = {
+          id: data.user.id,
+          email: data.user.email || null,
+          full_name: 'User',
+          phone: loginPhone,
+          role: 'customer' as const
+        };
+        await supabase.from('profiles').insert([newProfile]);
+        finalProfile = newProfile;
       }
+      
+      setActiveUser(finalProfile);
       triggerToast("Signed in successfully.");
       navigate("/");
     }
