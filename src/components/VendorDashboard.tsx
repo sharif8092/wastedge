@@ -191,7 +191,9 @@ export function VendorDashboard({
     }
 
     // Call state provider insert
-    const { data: newReq } = await supabase.from('pickup_requests').insert({
+    const reqId = 'REQ-' + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*1000);
+    const { data: newReq, error } = await supabase.from('pickup_requests').insert({
+      id: reqId,
       customer_id: profile.id,
       category_id: formCategory,
       description: formDescription,

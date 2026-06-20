@@ -362,7 +362,10 @@ export default function App() {
           phone: loginPhone,
           role: 'customer' as const
         };
-        await supabase.from('profiles').insert([newProfile]);
+        const { error: insertError } = await supabase.from('profiles').insert([newProfile]);
+        if (insertError) {
+          alert("Profile creation failed (RLS issue?): " + insertError.message);
+        }
         finalProfile = newProfile;
       }
       
@@ -464,7 +467,16 @@ export default function App() {
   };
 
   // Stub functions for components expecting them
-  const handleCreatePickupRequest = () => {};
+  const handleCreatePickupRequest = async (payload: any) => {
+    if (!activeUser) return;
+    const reqId = 'REQ-' + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*1000);
+    const { error } = await supabase.from('pickup_requests').insert({
+      id: reqId,
+      customer_id: activeUser.id,
+      ...payload
+    });
+    if (error) triggerToast("Error booking: " + error.message, "warning");
+  };
   const handleCancelRequest = () => {};
   const handleUpdateProfile = () => {};
   const handleUpdateVendorProfile = () => {};

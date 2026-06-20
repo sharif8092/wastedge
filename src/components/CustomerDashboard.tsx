@@ -191,7 +191,9 @@ export function CustomerDashboard({
     }
 
     // Call state provider insert
-    const { data: newReq } = await supabase.from('pickup_requests').insert({
+    const reqId = 'REQ-' + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*1000);
+    const { data: newReq, error } = await supabase.from('pickup_requests').insert({
+      id: reqId,
       customer_id: profile.id,
       category_id: formCategory,
       description: formDescription,
@@ -202,6 +204,10 @@ export function CustomerDashboard({
       image_urls: formImages,
       status: "pending"
     }).select();
+    if (error) {
+      alert("Error creating request: " + error.message);
+      return;
+    }
     if (newReq) setLocalRequests([newReq[0], ...localRequests]);
     
     onCreateRequest({
