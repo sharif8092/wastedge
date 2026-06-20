@@ -29,8 +29,10 @@ import {
   Camera,
   Layers,
   Award,
-  Recycle
+  Recycle,
+  Globe
 } from "lucide-react";
+import { SubdomainsPage } from "./pages/SubdomainsPage";
 
 interface AdminDashboardProps {
   profile: Profile;
@@ -64,7 +66,7 @@ export function AdminDashboard({
   onDeleteUser
 }: AdminDashboardProps) {
   // Navigation tabs
-  const [activeTab, setActiveTab] = useState<"overview" | "requests" | "vendors" | "customers">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "requests" | "vendors" | "customers" | "subdomains">("overview");
 
   // Search & Filter state
   const [requestSearch, setRequestSearch] = useState("");
@@ -238,6 +240,12 @@ export function AdminDashboard({
             onClick={() => setActiveTab("customers")} 
             icon={<Users size={18} />} 
             label="Manage Customers" 
+          />
+          <SidebarNavBtn 
+            active={activeTab === "subdomains"} 
+            onClick={() => setActiveTab("subdomains")} 
+            icon={<Layers size={18} />} 
+            label="Subdomains" 
           />
         </nav>
 
@@ -451,6 +459,13 @@ export function AdminDashboard({
                 <AnalyticsBlock title="Obsolete E-Waste" wt="321 kg" accent="bg-purple-50 text-purple-700 border-purple-102" percent="15%" />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* TAB: SUBDOMAINS */}
+        {activeTab === "subdomains" && (
+          <div className="animate-fade-in -mt-6">
+            <SubdomainsPage />
           </div>
         )}
 

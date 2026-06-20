@@ -12,6 +12,7 @@ import { TermsPage } from "./components/pages/TermsPage";
 import { CustomerDashboard } from "./components/CustomerDashboard";
 import { VendorDashboard } from "./components/VendorDashboard";
 import { AdminDashboard } from "./components/AdminDashboard";
+import { SubdomainsPage } from "./components/pages/SubdomainsPage";
 import {
   Recycle, ArrowRight, ShieldAlert, CheckCircle, Info, ArrowLeft, Phone
 } from "lucide-react";
@@ -573,6 +574,7 @@ export default function App() {
         <Route path="/about" element={<PublicLayout><AboutPage /></PublicLayout>} />
         <Route path="/rates" element={<PublicLayout><RatesPage /></PublicLayout>} />
         <Route path="/terms" element={<PublicLayout><TermsPage /></PublicLayout>} />
+        <Route path="/subdomains" element={<PublicLayout><SubdomainsPage /></PublicLayout>} />
 
         {/* Auth pages */}
         <Route path="/login" element={
