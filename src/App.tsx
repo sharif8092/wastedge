@@ -310,8 +310,16 @@ export default function App() {
     if (error) {
       setLoginError(error.message);
     } else {
+      let route = "/customer-dashboard";
+      if (data.user) {
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle();
+        if (profile) {
+          if (profile.role === 'admin') route = "/admin-dashboard";
+          else if (profile.role === 'vendor') route = "/vendor-dashboard";
+        }
+      }
       triggerToast(`Signed in successfully.`);
-      navigate("/");
+      navigate(route);
     }
   };
 
@@ -360,7 +368,9 @@ export default function App() {
       
       setActiveUser(finalProfile);
       triggerToast("Signed in successfully.");
-      navigate("/");
+      if (finalProfile.role === "admin") navigate("/admin-dashboard");
+      else if (finalProfile.role === "vendor") navigate("/vendor-dashboard");
+      else navigate("/customer-dashboard");
     }
   };
 
@@ -425,7 +435,10 @@ export default function App() {
       }
 
       triggerToast(`Account created! Welcome, ${regFullName}.`);
-      navigate("/");
+      if (registerRoleField === "admin") navigate("/admin-dashboard");
+      else if (registerRoleField === "vendor") navigate("/vendor-dashboard");
+      else navigate("/customer-dashboard");
+      
       setRegFullName(""); setRegEmail(""); setRegPhone(""); setRegPassword(""); setRegBusinessName(""); setRegServiceAreas("");
     }
   };
