@@ -32,25 +32,25 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
   const isActive = (to: string) =>
     to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
 
-  const isHome = location.pathname === "/";
+  const isDarkThemePage = location.pathname === "/" || location.pathname === "/about";
 
   const headerBg = scrolled
-    ? isHome
+    ? isDarkThemePage
       ? "bg-[#050505]/95 backdrop-blur-xl shadow-lg shadow-black/20 border-b border-white/5"
       : "bg-white/95 backdrop-blur-xl shadow-md shadow-gray-100"
-    : isHome
+    : isDarkThemePage
       ? "bg-transparent border-b border-transparent"
       : "bg-white border-b border-gray-100";
 
-  const textColor = isHome ? "text-white" : "text-gray-900";
-  const brandAccent = isHome ? "text-emerald-400" : "text-brand-green-600";
-  const mutedText = isHome ? "text-gray-400" : "text-gray-500";
+  const textColor = isDarkThemePage ? "text-white" : "text-gray-900";
+  const brandAccent = isDarkThemePage ? "text-emerald-400" : "text-brand-green-600";
+  const mutedText = isDarkThemePage ? "text-gray-400" : "text-gray-500";
   
   const getLinkClasses = (to: string) => {
     if (isActive(to)) {
-      return isHome ? "text-emerald-400 bg-emerald-400/10" : "text-brand-green-700 bg-brand-green-50";
+      return isDarkThemePage ? "text-emerald-400 bg-emerald-400/10" : "text-brand-green-700 bg-brand-green-50";
     }
-    return isHome 
+    return isDarkThemePage 
       ? "text-gray-300 hover:text-white hover:bg-white/10" 
       : "text-gray-600 hover:text-brand-green-700 hover:bg-brand-green-50/60";
   };
@@ -85,7 +85,7 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
         <div className="flex items-center justify-between h-16 md:h-18">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 select-none group">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform ${isHome ? 'bg-gradient-to-br from-emerald-500 to-teal-400 shadow-emerald-500/20' : 'bg-gradient-to-br from-brand-green-600 to-brand-green-500 shadow-brand-green-200'}`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform ${isDarkThemePage ? 'bg-gradient-to-br from-emerald-500 to-teal-400 shadow-emerald-500/20' : 'bg-gradient-to-br from-brand-green-600 to-brand-green-500 shadow-brand-green-200'}`}>
               <Recycle size={18} className="text-white animate-spin-slow" />
             </div>
             <div className="leading-none">
@@ -122,7 +122,7 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
             {activeUser ? (
               <button
                 onClick={onNavigateDashboard}
-                className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:scale-105 ${isHome ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-brand-green-600 text-white hover:bg-brand-green-700 shadow-md shadow-brand-green-200'}`}
+                className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:scale-105 ${isDarkThemePage ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-brand-green-600 text-white hover:bg-brand-green-700 shadow-md shadow-brand-green-200'}`}
               >
                 Dashboard
               </button>
@@ -130,13 +130,13 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
               <div className="flex items-center gap-2">
                 <Link
                   to="/login"
-                  className={`px-4 py-2.5 text-sm font-bold rounded-xl transition-colors ${isHome ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'}`}
+                  className={`px-4 py-2.5 text-sm font-bold rounded-xl transition-colors ${isDarkThemePage ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'}`}
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/book"
-                  className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:scale-105 ${isHome ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-brand-green-600 text-white hover:bg-brand-green-700 shadow-md shadow-brand-green-200'}`}
+                  className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:scale-105 ${isDarkThemePage ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-brand-green-600 text-white hover:bg-brand-green-700 shadow-md shadow-brand-green-200'}`}
                 >
                   Sell Scrap
                 </Link>
@@ -147,7 +147,7 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className={`md:hidden p-2 rounded-xl transition-colors ${isHome ? 'text-white hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100'}`}
+            className={`md:hidden p-2 rounded-xl transition-colors ${isDarkThemePage ? 'text-white hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100'}`}
           >
             {menuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -156,7 +156,7 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
 
       {/* Mobile Menu Dropdown */}
       {menuOpen && (
-        <div className={`md:hidden absolute top-full left-0 right-0 border-b shadow-2xl animate-slide-down ${isHome ? 'bg-[#0a0a0a] border-white/10 shadow-black/50' : 'bg-white border-gray-100 shadow-gray-200'}`}>
+        <div className={`md:hidden absolute top-full left-0 right-0 border-b shadow-2xl animate-slide-down ${isDarkThemePage ? 'bg-[#0a0a0a] border-white/10 shadow-black/50' : 'bg-white border-gray-100 shadow-gray-200'}`}>
           <nav className="flex flex-col p-4 space-y-2">
             {navLinks.map((link) => (
               <Link
@@ -168,12 +168,12 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
               </Link>
             ))}
             
-            <div className={`my-2 h-px ${isHome ? 'bg-white/10' : 'bg-gray-100'}`}></div>
+            <div className={`my-2 h-px ${isDarkThemePage ? 'bg-white/10' : 'bg-gray-100'}`}></div>
             
             {activeUser ? (
               <button
                 onClick={onNavigateDashboard}
-                className={`w-full px-4 py-3 text-center text-sm font-black rounded-xl transition-colors ${isHome ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400' : 'bg-brand-green-600 text-white hover:bg-brand-green-700'}`}
+                className={`w-full px-4 py-3 text-center text-sm font-black rounded-xl transition-colors ${isDarkThemePage ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400' : 'bg-brand-green-600 text-white hover:bg-brand-green-700'}`}
               >
                 Go to Dashboard
               </button>
@@ -181,13 +181,13 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
               <>
                 <Link
                   to="/login"
-                  className={`px-4 py-3 rounded-xl text-sm font-bold text-center transition-colors ${isHome ? 'bg-white/5 text-white hover:bg-white/10 border border-white/10' : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'}`}
+                  className={`px-4 py-3 rounded-xl text-sm font-bold text-center transition-colors ${isDarkThemePage ? 'bg-white/5 text-white hover:bg-white/10 border border-white/10' : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'}`}
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/book"
-                  className={`px-4 py-3 rounded-xl text-sm font-black text-center transition-colors ${isHome ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400' : 'bg-brand-green-600 text-white hover:bg-brand-green-700'}`}
+                  className={`px-4 py-3 rounded-xl text-sm font-black text-center transition-colors ${isDarkThemePage ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400' : 'bg-brand-green-600 text-white hover:bg-brand-green-700'}`}
                 >
                   Sell Scrap Now
                 </Link>
