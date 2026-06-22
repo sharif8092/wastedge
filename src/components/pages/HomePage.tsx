@@ -75,26 +75,7 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ═══════ LIVE TICKER MARQUEE ═══════ */}
-      <section className="border-y border-white/5 bg-white/[0.02] py-4 overflow-hidden relative">
-        <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#050505] to-transparent z-10"></div>
-        <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#050505] to-transparent z-10"></div>
-        <div className="flex w-max animate-marquee hover:[animation-play-state:paused]">
-          {[...SCRAP_OBJECTS, ...SCRAP_OBJECTS, ...SCRAP_OBJECTS].map((item, idx) => (
-            <div key={idx} className="flex items-center gap-3 px-8 border-r border-white/5 whitespace-nowrap">
-              <span className="text-gray-400 font-medium">{item.popular_label}</span>
-              <span className="text-white font-mono font-bold">₹{item.rate}/{item.unit}</span>
-              {item.market_trend === "up" ? (
-                <span className="text-emerald-400 text-xs font-black bg-emerald-400/10 px-2 py-0.5 rounded-md">▲ {item.trend_value}</span>
-              ) : item.market_trend === "down" ? (
-                <span className="text-rose-400 text-xs font-black bg-rose-400/10 px-2 py-0.5 rounded-md">▼ {item.trend_value}</span>
-              ) : (
-                <span className="text-gray-500 text-xs font-black bg-gray-800 px-2 py-0.5 rounded-md">▬ {item.trend_value}</span>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
+
 
       {/* ═══════ HOW IT WORKS (TECH TIMELINE) ═══════ */}
       <section className="py-24 px-4 bg-[#0a0a0a]">
