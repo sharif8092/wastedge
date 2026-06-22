@@ -16,28 +16,29 @@ export function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300">
       {/* CTA Banner */}
-      <div className="bg-gradient-to-r from-brand-green-700 to-brand-green-600 py-12 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl md:text-3xl font-black text-white font-display">
-            Let's fix the environment together. 🌱
+      <div className="bg-[#050505] border-t border-b border-white/5 py-16 px-6 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[20rem] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <h2 className="text-3xl md:text-4xl font-black text-white font-display mb-2">
+            Let's fix the environment <span className="text-emerald-400">together.</span> 🌱
           </h2>
-          <p className="text-brand-green-100 mt-2 text-sm">
+          <p className="text-gray-400 text-sm">
             Schedule your first pickup today. Customer Support Available 8:30AM – 7:30PM
           </p>
-          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/register"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-white text-brand-green-700 font-black text-sm rounded-xl shadow-lg hover:bg-brand-green-50 transition-all active:scale-95"
+              to="/book"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-emerald-500 text-gray-950 font-black text-sm rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:bg-emerald-400 hover:scale-105 transition-all"
             >
-              <Recycle size={16} />
+              <Recycle size={18} />
               Schedule a Pickup
-              <ArrowRight size={14} />
+              <ArrowRight size={16} />
             </Link>
             <a
               href="tel:+919810329454"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 border-2 border-white/40 text-white font-bold text-sm rounded-xl hover:bg-white/10 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white font-bold text-sm rounded-xl hover:bg-white/10 transition-all"
             >
-              <Phone size={16} />
+              <Phone size={16} className="text-emerald-400" />
               Call Us Now
             </a>
           </div>
