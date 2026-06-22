@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, TrendingUp, TrendingDown, Minus, ArrowRight, Info } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, Minus, ArrowRight, Info, CheckCircle } from "lucide-react";
 
 interface RateItem {
   id: string;
@@ -94,129 +94,142 @@ export function RatesPage() {
   };
 
   return (
-    <div className="bg-white min-h-screen font-sans pt-24 md:pt-28">
+    <div className="bg-[#050505] min-h-screen font-sans text-gray-100 selection:bg-emerald-500/30">
+      
       {/* Hero */}
-      <section className="hero-gradient py-16 px-4 text-center border-b border-brand-green-100">
-        <div className="max-w-2xl mx-auto animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 bg-brand-green-100 border border-brand-green-200 px-4 py-1.5 rounded-full text-xs font-bold text-brand-green-700 mb-5">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green-500 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-green-500"></span>
-            </span>
-            Prices Updated Hourly
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 font-display">
-            Live <span className="text-gradient-green">Scrap Rates</span>
+      <section className="relative pt-32 pb-16 px-4 text-center border-b border-white/5 overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-[30rem] h-[30rem] bg-emerald-600/10 rounded-full -translate-y-1/2 blur-[120px] pointer-events-none mix-blend-screen" />
+        <div className="max-w-2xl mx-auto relative animate-fade-in-up z-10">
+          <h1 className="text-4xl md:text-5xl font-black text-white font-display tracking-tight leading-tight">
+            Live Scrap <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 drop-shadow-sm">Rates</span>
           </h1>
-          <p className="text-gray-500 mt-3 leading-relaxed">
-            Transparent, real-time market rates across all scrap categories.<br />
-            No hidden fees. What you see is what you get paid.
+          <p className="text-gray-400 mt-4 text-lg">
+            Transparent, real-time pricing for all categories of scrap. No hidden fees.
           </p>
+
+          <div className="mt-8 relative max-w-md mx-auto group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search size={18} className="text-gray-500 group-focus-within:text-emerald-400 transition-colors" />
+            </div>
+            <input
+              type="text"
+              className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium shadow-lg"
+              placeholder="Search for newspaper, AC, laptop..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 py-10">
-        {/* Search + filter */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8 items-start md:items-center">
-          <div className="relative flex-1 max-w-md">
-            <Search size={16} className="absolute left-3.5 top-3.5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search e.g. Copper, Newspaper, AC..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-800 placeholder:text-gray-400"
-            />
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <Info size={13} className="text-brand-green-600" />
-            <span>Rates shown are for <strong>Delhi NCR</strong>. Slight variations may apply in other cities.</span>
-          </div>
-        </div>
-
-        {/* Category tabs */}
+      {/* Main Content */}
+      <section className="max-w-5xl mx-auto px-4 py-12">
+        {/* Category Tabs */}
         {!searchQuery && (
-          <div className="flex flex-wrap gap-2 mb-7">
+          <div className="flex overflow-x-auto hide-scrollbar gap-3 mb-10 pb-2">
+            <button
+              onClick={() => setActiveCat("all")}
+              className={`whitespace-nowrap px-6 py-3 rounded-full text-sm font-bold transition-all shadow-sm ${
+                activeCat === "all"
+                  ? "bg-emerald-500 text-gray-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                  : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              All Rates
+            </button>
             {RATE_CATEGORIES.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCat(cat.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                className={`whitespace-nowrap px-6 py-3 rounded-full text-sm font-bold transition-all shadow-sm flex items-center gap-2 ${
                   activeCat === cat.id
-                    ? "bg-brand-green-600 text-white shadow-md shadow-brand-green-200"
-                    : "bg-gray-50 border border-gray-200 text-gray-600 hover:border-brand-green-300 hover:text-brand-green-700"
+                    ? "bg-emerald-500 text-gray-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                    : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <span>{cat.emoji}</span>
-                {cat.label}
+                <span>{cat.emoji}</span> {cat.label}
               </button>
             ))}
           </div>
         )}
 
-        {/* Rates grid */}
-        {displayRates.length === 0 ? (
-          <div className="text-center py-20">
-            <span className="text-4xl">🔍</span>
-            <h3 className="font-bold text-gray-700 mt-3">No items found</h3>
-            <p className="text-gray-400 text-sm mt-1">Try a different search term</p>
+        {/* Results Info */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-black text-white font-display">
+            {searchQuery
+              ? `Search Results for "${searchQuery}"`
+              : activeCat === "all" ? "All Current Rates" : RATE_CATEGORIES.find(c => c.id === activeCat)?.label}
+            <span className="text-gray-500 font-medium ml-2 text-sm">({displayRates.length} items)</span>
+          </h2>
+          <div className="hidden sm:flex items-center gap-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+            <span className="flex items-center gap-1"><TrendingUp size={14} className="text-emerald-400" /> High Demand</span>
+            <span className="flex items-center gap-1"><Minus size={14} className="text-gray-400" /> Stable</span>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {displayRates.map(item => (
-              <div key={item.id}
-                className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:border-brand-green-200 hover:shadow-md transition-all group card-lift">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-lg">{catEmoji[item.category]}</span>
-                  {item.popular && (
-                    <span className="text-[9px] bg-brand-green-100 text-brand-green-700 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      🚀 Popular
-                    </span>
-                  )}
-                </div>
-                <h3 className="font-bold text-gray-800 text-sm leading-snug mt-2">{item.name}</h3>
-                {item.note && (
-                  <p className="text-[10px] text-brand-orange-500 font-semibold mt-1 italic">
-                    * {item.note}
-                  </p>
-                )}
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                  <div>
-                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">Rate</p>
-                    <p className="font-black text-gray-900 text-lg font-mono">
-                      ₹{item.rate.toLocaleString("en-IN")}
-                      <span className="text-gray-400 text-xs font-normal">/{item.unit}</span>
-                    </p>
+        </div>
+
+        {/* Rates Grid */}
+        {displayRates.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayRates.map((item) => (
+              <div key={item.id} className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 hover:border-emerald-500/30 hover:bg-[#111] transition-all relative group overflow-hidden">
+                {item.popular && (
+                  <div className="absolute top-0 right-0 bg-emerald-500 text-gray-950 text-[10px] font-black px-2 py-1 rounded-bl-xl tracking-wider uppercase shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                    Popular
                   </div>
-                  <Link to="/register"
-                    className="px-3 py-2 bg-brand-green-50 group-hover:bg-brand-green-600 border border-brand-green-200 group-hover:border-transparent text-brand-green-700 group-hover:text-white text-xs font-black rounded-xl transition-all flex items-center gap-1">
-                    Sell <ArrowRight size={12} />
-                  </Link>
+                )}
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl opacity-80">{catEmoji[item.category] || "📦"}</span>
+                    <h3 className="font-bold text-white leading-tight">{item.name}</h3>
+                  </div>
                 </div>
+
+                <div className="flex items-end gap-1 mt-4">
+                  <span className="text-2xl font-black text-emerald-400 font-mono leading-none">₹{item.rate}</span>
+                  <span className="text-gray-500 text-sm font-semibold mb-0.5">/ {item.unit}</span>
+                </div>
+
+                {item.note && (
+                  <div className="mt-4 flex items-start gap-1.5 text-xs text-amber-500/80 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
+                    <Info size={14} className="shrink-0 mt-0.5" />
+                    <span>{item.note}</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
+        ) : (
+          <div className="text-center py-20 bg-[#0a0a0a] border border-white/5 rounded-2xl">
+            <div className="text-4xl mb-4 opacity-50">🔍</div>
+            <h3 className="text-lg font-bold text-white mb-2">No items found</h3>
+            <p className="text-gray-400 text-sm max-w-md mx-auto">
+              We couldn't find any scrap items matching your search. Try different keywords or browse categories.
+            </p>
+            <button
+              onClick={() => { setSearchQuery(""); setActiveCat("all"); }}
+              className="mt-6 px-6 py-2.5 bg-white/5 border border-white/10 text-white font-bold text-sm rounded-xl hover:bg-white/10 transition-colors"
+            >
+              Clear Search
+            </button>
+          </div>
         )}
 
-        {/* Disclaimer */}
-        <div className="mt-12 bg-brand-green-50 border border-brand-green-100 rounded-2xl p-5 text-sm text-gray-600 leading-relaxed">
-          <p className="font-bold text-brand-green-700 mb-1">📌 Rate Disclaimer</p>
-          <p>
-            Prices listed are indicative market rates and may vary based on condition, quantity, and local market conditions.
-            Final rates are confirmed at the time of weighing by our certified collector.
-            Payment is made instantly on the spot before the collector leaves your premises.
-          </p>
+        <div className="mt-16 bg-gradient-to-br from-emerald-950/40 to-[#050505] border border-emerald-500/20 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none mix-blend-screen" />
+          <div className="relative z-10">
+            <h3 className="text-2xl font-black text-white font-display mb-2">Ready to sell your scrap?</h3>
+            <p className="text-emerald-400/80 max-w-md text-sm leading-relaxed">
+              Our rates are updated regularly based on market conditions. Schedule a pickup today to lock in the current prices.
+            </p>
+          </div>
+          <Link
+            to="/book"
+            className="relative z-10 shrink-0 inline-flex items-center justify-center gap-2 px-8 py-4 bg-emerald-500 text-gray-950 font-black text-sm rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:bg-emerald-400 hover:scale-105 transition-all"
+          >
+            Schedule a Pickup
+            <ArrowRight size={16} />
+          </Link>
         </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-14 px-4 bg-gray-50 text-center">
-        <h2 className="text-2xl font-black text-gray-900 font-display">Ready to Sell Your Scrap?</h2>
-        <p className="text-gray-500 mt-2 text-sm mb-6">Book a free doorstep pickup and get paid instantly.</p>
-        <Link to="/register"
-          className="inline-flex items-center gap-2 px-8 py-4 bg-brand-green-600 hover:bg-brand-green-700 text-white font-black text-sm rounded-xl shadow-lg shadow-brand-green-200 transition-all active:scale-95">
-          Schedule My Pickup <ArrowRight size={16} />
-        </Link>
       </section>
     </div>
   );

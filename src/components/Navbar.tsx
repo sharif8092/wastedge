@@ -32,7 +32,7 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
   const isActive = (to: string) =>
     to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
 
-  const isDarkThemePage = location.pathname === "/" || location.pathname === "/about";
+  const isDarkThemePage = ["/", "/about", "/rates", "/terms"].includes(location.pathname);
 
   const headerBg = scrolled
     ? isDarkThemePage
