@@ -169,23 +169,16 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ═══════ CTA / STATS FOOTER ═══════ */}
+      {/* ═══════ STATS ═══════ */}
       <section className="py-24 px-4 bg-emerald-950/20">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-20">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {stats.map((stat) => (
               <div key={stat.label} className="bg-[#0f0f0f] rounded-2xl p-6 text-center border border-white/5 hover:border-emerald-500/20 transition-colors">
                 <div className={`text-2xl font-black font-mono mb-1 ${stat.color}`}>{stat.value}</div>
                 <div className="text-[11px] text-gray-500 uppercase tracking-wider font-bold">{stat.label}</div>
               </div>
             ))}
-          </div>
-
-          <div className="text-center">
-            <h2 className="text-3xl md:text-5xl font-black text-white font-display mb-6">Ready to clear the clutter?</h2>
-            <Link to="/book" className="inline-flex items-center gap-2 bg-white text-gray-950 font-black px-8 py-4 rounded-2xl hover:bg-gray-200 transition-colors">
-              Book a Pickup Now <ChevronRight size={18} />
-            </Link>
           </div>
         </div>
       </section>

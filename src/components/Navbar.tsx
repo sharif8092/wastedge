@@ -32,15 +32,32 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
   const isActive = (to: string) =>
     to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
 
+  const isHome = location.pathname === "/";
+
+  const headerBg = scrolled
+    ? isHome
+      ? "bg-[#050505]/95 backdrop-blur-xl shadow-lg shadow-black/20 border-b border-white/5"
+      : "bg-white/95 backdrop-blur-xl shadow-md shadow-gray-100"
+    : isHome
+      ? "bg-transparent border-b border-transparent"
+      : "bg-white border-b border-gray-100";
+
+  const textColor = isHome ? "text-white" : "text-gray-900";
+  const brandAccent = isHome ? "text-emerald-400" : "text-brand-green-600";
+  const mutedText = isHome ? "text-gray-400" : "text-gray-500";
+  
+  const getLinkClasses = (to: string) => {
+    if (isActive(to)) {
+      return isHome ? "text-emerald-400 bg-emerald-400/10" : "text-brand-green-700 bg-brand-green-50";
+    }
+    return isHome 
+      ? "text-gray-300 hover:text-white hover:bg-white/10" 
+      : "text-gray-600 hover:text-brand-green-700 hover:bg-brand-green-50/60";
+  };
+
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-white/95 backdrop-blur-xl shadow-md shadow-gray-100"
-          : "bg-white border-b border-gray-100"
-      }`}
-    >
-      {/* Live price ticker at the absolute top */}
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${headerBg}`}>
+      {/* Live price ticker at the absolute top (always green) */}
       <div className="bg-brand-green-700 py-1.5 overflow-hidden">
         <div className="flex items-center gap-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white/20 px-2 py-0.5 rounded text-white text-[10px] font-black uppercase tracking-widest shrink-0 flex items-center gap-1">
@@ -67,19 +84,16 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-18">
           {/* Logo */}
-          <Link
-            to="/"
-            className="flex items-center gap-2.5 select-none group"
-          >
-            <div className="w-9 h-9 bg-gradient-to-br from-brand-green-600 to-brand-green-500 rounded-xl flex items-center justify-center shadow-md shadow-brand-green-200 group-hover:scale-105 transition-transform">
+          <Link to="/" className="flex items-center gap-2.5 select-none group">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform ${isHome ? 'bg-gradient-to-br from-emerald-500 to-teal-400 shadow-emerald-500/20' : 'bg-gradient-to-br from-brand-green-600 to-brand-green-500 shadow-brand-green-200'}`}>
               <Recycle size={18} className="text-white animate-spin-slow" />
             </div>
             <div className="leading-none">
-              <span className="font-extrabold text-gray-900 text-lg font-display tracking-tight">
+              <span className={`font-extrabold text-lg font-display tracking-tight ${textColor}`}>
                 wastEdge
-                <span className="text-brand-green-600">Solution</span>
+                <span className={brandAccent}>Solution</span>
               </span>
-              <p className="text-[9px] text-gray-400 font-mono uppercase tracking-widest font-bold mt-0.5">
+              <p className={`text-[9px] font-mono uppercase tracking-widest font-bold mt-0.5 ${mutedText}`}>
                 Recycling Made Simple
               </p>
             </div>
@@ -91,105 +105,95 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
               <Link
                 key={link.to}
                 to={link.to}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  isActive(link.to)
-                    ? "text-brand-green-700 bg-brand-green-50"
-                    : "text-gray-600 hover:text-brand-green-700 hover:bg-brand-green-50/60"
-                }`}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${getLinkClasses(link.to)}`}
               >
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
-            <a
-              href="tel:+919810329454"
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-green-700 font-semibold transition-colors"
-            >
-              <Phone size={14} />
-              <span>+91 98103 29454</span>
-            </a>
+          {/* Desktop Right Side */}
+          <div className="hidden md:flex items-center gap-5">
+            <div className={`text-sm font-bold flex items-center gap-2 ${mutedText}`}>
+              <Phone size={16} className={brandAccent} />
+              +91 98103 29454
+            </div>
+
             {activeUser ? (
               <button
                 onClick={onNavigateDashboard}
-                className="px-5 py-2 bg-brand-green-600 hover:bg-brand-green-700 text-white text-sm font-bold rounded-xl shadow-md shadow-brand-green-200 transition-all active:scale-95 cursor-pointer"
+                className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:scale-105 ${isHome ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-brand-green-600 text-white hover:bg-brand-green-700 shadow-md shadow-brand-green-200'}`}
               >
-                My Dashboard
+                Dashboard
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className={`px-4 py-2.5 text-sm font-bold rounded-xl transition-colors ${isHome ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/book"
+                  className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:scale-105 ${isHome ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-brand-green-600 text-white hover:bg-brand-green-700 shadow-md shadow-brand-green-200'}`}
+                >
+                  Sell Scrap
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className={`md:hidden p-2 rounded-xl transition-colors ${isHome ? 'text-white hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100'}`}
+          >
+            {menuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu Dropdown */}
+      {menuOpen && (
+        <div className={`md:hidden absolute top-full left-0 right-0 border-b shadow-2xl animate-slide-down ${isHome ? 'bg-[#0a0a0a] border-white/10 shadow-black/50' : 'bg-white border-gray-100 shadow-gray-200'}`}>
+          <nav className="flex flex-col p-4 space-y-2">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`px-4 py-3 rounded-xl text-sm font-bold transition-colors ${getLinkClasses(link.to)}`}
+              >
+                {link.label}
+              </Link>
+            ))}
+            
+            <div className={`my-2 h-px ${isHome ? 'bg-white/10' : 'bg-gray-100'}`}></div>
+            
+            {activeUser ? (
+              <button
+                onClick={onNavigateDashboard}
+                className={`w-full px-4 py-3 text-center text-sm font-black rounded-xl transition-colors ${isHome ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400' : 'bg-brand-green-600 text-white hover:bg-brand-green-700'}`}
+              >
+                Go to Dashboard
               </button>
             ) : (
               <>
                 <Link
                   to="/login"
-                  className="px-4 py-2 text-sm font-semibold text-gray-700 hover:text-brand-green-700 transition-colors"
+                  className={`px-4 py-3 rounded-xl text-sm font-bold text-center transition-colors ${isHome ? 'bg-white/5 text-white hover:bg-white/10 border border-white/10' : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'}`}
                 >
                   Sign In
                 </Link>
                 <Link
-                  to="/register"
-                  className="px-5 py-2 bg-brand-green-600 hover:bg-brand-green-700 text-white text-sm font-bold rounded-xl shadow-md shadow-brand-green-200 transition-all active:scale-95"
+                  to="/book"
+                  className={`px-4 py-3 rounded-xl text-sm font-black text-center transition-colors ${isHome ? 'bg-emerald-500 text-gray-950 hover:bg-emerald-400' : 'bg-brand-green-600 text-white hover:bg-brand-green-700'}`}
                 >
-                  Sell Scrap
+                  Sell Scrap Now
                 </Link>
               </>
             )}
-          </div>
-
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-            aria-label="Toggle menu"
-          >
-            {menuOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu Drawer */}
-      {menuOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white animate-fade-in-up">
-          <div className="px-4 py-4 space-y-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={`block px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-                  isActive(link.to)
-                    ? "text-brand-green-700 bg-brand-green-50"
-                    : "text-gray-600 hover:text-brand-green-700 hover:bg-gray-50"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
-              {activeUser ? (
-                <button
-                  onClick={onNavigateDashboard}
-                  className="w-full py-3 bg-brand-green-600 text-white text-sm font-bold rounded-xl transition-all"
-                >
-                  My Dashboard
-                </button>
-              ) : (
-                <>
-                  <Link
-                    to="/login"
-                    className="block text-center py-3 text-sm font-semibold text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="block text-center py-3 bg-brand-green-600 text-white text-sm font-bold rounded-xl shadow-md"
-                  >
-                    Sell Scrap
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
+          </nav>
         </div>
       )}
     </header>
