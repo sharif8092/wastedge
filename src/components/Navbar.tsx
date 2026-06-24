@@ -84,19 +84,47 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-18">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 select-none group">
+          <Link to="/" className="flex items-center gap-3 select-none group">
             <img 
-              src="/logo.svg" 
+              src="/logo.png" 
               alt="wastEdge Logo" 
-              className={`w-9 h-9 object-contain drop-shadow-md group-hover:scale-105 transition-transform`} 
+              className={`w-12 h-12 object-contain drop-shadow-md group-hover:scale-105 transition-transform`} 
             />
-            <div className="leading-none">
-              <span className={`text-xl font-black font-display tracking-tight ${textColor}`}>
-                wastEdge
-              </span>
-              <span className={`text-xl font-black font-display tracking-tight ${brandAccent}`}>
-                .
-              </span>
+            <div className="flex flex-col justify-center">
+              {/* WastEdge */}
+              <div className="flex items-center leading-none mb-0.5">
+                <span className={`text-2xl md:text-3xl font-black font-display tracking-tight ${isDarkThemePage ? 'text-white' : 'text-[#0a192f]'}`}>
+                  Wast
+                </span>
+                <span className="text-2xl md:text-3xl font-black font-display tracking-tight text-emerald-600">
+                  Edge
+                </span>
+              </div>
+              
+              {/* Global Solutions */}
+              <div className="w-full">
+                <div className={`text-[10px] md:text-xs font-bold tracking-[0.25em] uppercase leading-none ${isDarkThemePage ? 'text-gray-300' : 'text-[#0a192f]'}`}>
+                  Global Solutions
+                </div>
+                
+                {/* Private Limited */}
+                <div className="flex items-center gap-1 mt-1 mb-0.5 opacity-80">
+                  <div className={`h-[1px] flex-1 ${isDarkThemePage ? 'bg-gray-600' : 'bg-gray-400'}`}></div>
+                  <span className={`text-[7px] md:text-[8px] font-semibold tracking-[0.3em] uppercase leading-none ${isDarkThemePage ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Private Limited
+                  </span>
+                  <div className={`h-[1px] flex-1 ${isDarkThemePage ? 'bg-gray-600' : 'bg-gray-400'}`}></div>
+                </div>
+                
+                {/* Tagline */}
+                <div className="flex justify-between items-center text-[7px] md:text-[8px] font-bold tracking-[0.15em] uppercase text-emerald-500 leading-none">
+                  <span>Rethink</span>
+                  <span className="text-emerald-500/50">|</span>
+                  <span>Recover</span>
+                  <span className="text-emerald-500/50">|</span>
+                  <span>Regenerate</span>
+                </div>
+              </div>
             </div>
           </Link>
 
