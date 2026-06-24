@@ -36,7 +36,7 @@ export function AboutPage() {
         <div className="absolute top-0 right-1/4 w-[30rem] h-[30rem] bg-emerald-600/10 rounded-full -translate-y-1/2 blur-[120px] pointer-events-none mix-blend-screen" />
         <div className="max-w-3xl mx-auto relative animate-fade-in-up z-10">
           <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
-            <Recycle size={30} className="text-emerald-400" />
+            <img src="/logo.svg" alt="wastEdge Logo" className="w-10 h-10 object-contain drop-shadow-md" />
           </div>
           <h1 className="text-4xl md:text-6xl font-black text-white font-display tracking-tight leading-tight mb-6">
             About <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 drop-shadow-sm">wastEdge</span>
