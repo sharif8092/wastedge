@@ -87,45 +87,9 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
           <Link to="/" className="flex items-center gap-3 select-none group">
             <img 
               src="/logo.png" 
-              alt="wastEdge Logo" 
-              className={`w-12 h-12 object-contain drop-shadow-md group-hover:scale-105 transition-transform`} 
+              alt="WastEdge Global Solutions Trademark Logo" 
+              className={`w-auto h-12 md:h-16 object-contain drop-shadow-md group-hover:scale-[1.02] transition-transform`} 
             />
-            <div className="flex flex-col justify-center">
-              {/* WastEdge */}
-              <div className="flex items-center leading-none mb-0.5">
-                <span className={`text-2xl md:text-3xl font-black font-display tracking-tight ${isDarkThemePage ? 'text-white' : 'text-[#0a192f]'}`}>
-                  Wast
-                </span>
-                <span className="text-2xl md:text-3xl font-black font-display tracking-tight text-emerald-600">
-                  Edge
-                </span>
-              </div>
-              
-              {/* Global Solutions */}
-              <div className="w-full">
-                <div className={`text-[10px] md:text-xs font-bold tracking-[0.25em] uppercase leading-none ${isDarkThemePage ? 'text-gray-300' : 'text-[#0a192f]'}`}>
-                  Global Solutions
-                </div>
-                
-                {/* Private Limited */}
-                <div className="flex items-center gap-1 mt-1 mb-0.5 opacity-80">
-                  <div className={`h-[1px] flex-1 ${isDarkThemePage ? 'bg-gray-600' : 'bg-gray-400'}`}></div>
-                  <span className={`text-[7px] md:text-[8px] font-semibold tracking-[0.3em] uppercase leading-none ${isDarkThemePage ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Private Limited
-                  </span>
-                  <div className={`h-[1px] flex-1 ${isDarkThemePage ? 'bg-gray-600' : 'bg-gray-400'}`}></div>
-                </div>
-                
-                {/* Tagline */}
-                <div className="flex justify-between items-center text-[7px] md:text-[8px] font-bold tracking-[0.15em] uppercase text-emerald-500 leading-none">
-                  <span>Rethink</span>
-                  <span className="text-emerald-500/50">|</span>
-                  <span>Recover</span>
-                  <span className="text-emerald-500/50">|</span>
-                  <span>Regenerate</span>
-                </div>
-              </div>
-            </div>
           </Link>
 
           {/* Desktop Nav Links */}
