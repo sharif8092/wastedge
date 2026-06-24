@@ -85,9 +85,11 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
         <div className="flex items-center justify-between h-16 md:h-18">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 select-none group">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform ${isDarkThemePage ? 'bg-gradient-to-br from-emerald-500 to-teal-400 shadow-emerald-500/20' : 'bg-gradient-to-br from-brand-green-600 to-brand-green-500 shadow-brand-green-200'}`}>
-              <Recycle size={18} className="text-white animate-spin-slow" />
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="wastEdge Logo" 
+              className={`w-9 h-9 rounded-xl object-contain shadow-md group-hover:scale-105 transition-transform ${isDarkThemePage ? 'invert opacity-90' : 'border border-gray-100'}`} 
+            />
             <div className="leading-none">
               <span className={`font-extrabold text-lg font-display tracking-tight ${textColor}`}>
                 wastEdge
