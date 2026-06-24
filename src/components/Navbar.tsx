@@ -86,18 +86,17 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 select-none group">
             <img 
-              src="/logo.png" 
+              src="/logo.svg" 
               alt="wastEdge Logo" 
-              className={`w-9 h-9 rounded-xl object-contain shadow-md group-hover:scale-105 transition-transform ${isDarkThemePage ? 'invert opacity-90' : 'border border-gray-100'}`} 
+              className={`w-9 h-9 rounded-xl object-contain shadow-sm group-hover:scale-105 transition-transform drop-shadow-lg`} 
             />
             <div className="leading-none">
-              <span className={`font-extrabold text-lg font-display tracking-tight ${textColor}`}>
+              <span className={`text-xl font-black font-display tracking-tight ${textColor}`}>
                 wastEdge
-                <span className={brandAccent}>Solution</span>
               </span>
-              <p className={`text-[9px] font-mono uppercase tracking-widest font-bold mt-0.5 ${mutedText}`}>
-                Recycling Made Simple
-              </p>
+              <span className={`text-xl font-black font-display tracking-tight ${brandAccent}`}>
+                .
+              </span>
             </div>
           </Link>
 
