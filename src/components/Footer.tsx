@@ -51,7 +51,7 @@ export function Footer() {
         <div className="md:col-span-1 space-y-4">
           <div className="flex items-center gap-2.5">
             <img 
-              src="/logo.png" 
+              src="/logo-icon.png" 
               alt="WGS Logo" 
               className="w-auto h-10 object-contain"
             />
