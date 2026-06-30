@@ -50,11 +50,13 @@ export function Footer() {
         {/* Brand */}
         <div className="md:col-span-1 space-y-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-brand-green-600 rounded-xl flex items-center justify-center">
-              <Recycle size={18} className="text-white" />
-            </div>
+            <img 
+              src="/logo-icon.png" 
+              alt="WGS Logo" 
+              className="w-auto h-10 object-contain"
+            />
             <span className="font-extrabold text-white text-lg font-display">
-              wastEdge<span className="text-brand-green-400">Solution</span>
+              WGS<span className="text-brand-green-400">Recycling</span>
             </span>
           </div>
           <p className="text-sm text-gray-400 leading-relaxed">

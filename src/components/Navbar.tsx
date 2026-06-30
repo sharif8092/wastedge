@@ -85,28 +85,17 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
         <div className="flex items-center justify-between h-16 md:h-18">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 select-none group">
-            {/* 1st Image: Hexagon Logo Icon */}
             <img 
               src="/logo-icon.png" 
-              alt="WEGS Logo Icon" 
-              className={`w-auto h-16 md:h-20 object-contain drop-shadow-md group-hover:scale-[1.02] transition-transform`} 
+              alt="WGS Logo" 
+              className={`w-auto h-12 md:h-14 object-contain drop-shadow-md group-hover:scale-[1.02] transition-transform`} 
             />
-            
             <div className="flex flex-col justify-center">
-              {/* 2nd Image: Trademarked Logo Text */}
-              <img 
-                src="/logo-text.png" 
-                alt="WastEdge Global Solutions" 
-                className={`w-auto h-10 md:h-12 object-contain ${isDarkThemePage ? 'brightness-0 invert opacity-90' : ''}`} 
-              />
-              
-              {/* 3rd Part: Tagline (Coded) */}
-              <div className="flex justify-between items-center w-full mt-1.5 px-0.5">
-                <span className={`text-[7px] md:text-[8px] font-bold tracking-[0.25em] ${isDarkThemePage ? 'text-emerald-400' : 'text-[#1e6138]'}`}>RETHINK</span>
-                <span className={`text-[7px] md:text-[8px] font-bold ${isDarkThemePage ? 'text-gray-500' : 'text-gray-400'}`}>|</span>
-                <span className={`text-[7px] md:text-[8px] font-bold tracking-[0.25em] ${isDarkThemePage ? 'text-gray-200' : 'text-[#232e42]'}`}>RECOVER</span>
-                <span className={`text-[7px] md:text-[8px] font-bold ${isDarkThemePage ? 'text-gray-500' : 'text-gray-400'}`}>|</span>
-                <span className={`text-[7px] md:text-[8px] font-bold tracking-[0.25em] ${isDarkThemePage ? 'text-gray-400' : 'text-[#7e878c]'}`}>REGENERATE</span>
+              <span className={`font-extrabold text-xl md:text-2xl font-display ${isDarkThemePage ? 'text-white' : 'text-gray-900'}`}>
+                WGS
+              </span>
+              <div className="flex justify-between items-center w-full mt-0.5">
+                <span className={`text-[8px] md:text-[9px] font-bold tracking-[0.2em] ${isDarkThemePage ? 'text-emerald-400' : 'text-brand-green-700'}`}>RECYCLING</span>
               </div>
             </div>
           </Link>
