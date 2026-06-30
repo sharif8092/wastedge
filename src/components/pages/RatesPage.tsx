@@ -133,7 +133,7 @@ export function RatesPage() {
       <section className="max-w-5xl mx-auto px-4 py-12">
         {/* Category Tabs */}
         {!searchQuery && (
-          <div className="flex overflow-x-auto hide-scrollbar gap-3 mb-10 pb-2">
+          <div className="flex overflow-x-auto no-scrollbar gap-3 mb-10 pb-2">
             <button
               onClick={() => setActiveCat("all")}
               className={`whitespace-nowrap px-6 py-3 rounded-full text-sm font-bold transition-all shadow-sm ${
