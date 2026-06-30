@@ -86,7 +86,7 @@ export function Navbar({ activeUser, onNavigateDashboard }: NavbarProps) {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 select-none group">
             <img 
-              src="/logo-icon.png" 
+              src="/logo.png" 
               alt="WGS Logo" 
               className={`w-auto h-12 md:h-14 object-contain drop-shadow-md group-hover:scale-[1.02] transition-transform`} 
             />
