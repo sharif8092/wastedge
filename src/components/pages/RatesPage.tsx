@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, TrendingUp, TrendingDown, Minus, ArrowRight, Info, CheckCircle } from "lucide-react";
+import { 
+  Search, TrendingUp, TrendingDown, Minus, ArrowRight, Info, CheckCircle,
+  Newspaper, FileText, Book, Package, Trash2, Hammer, Wrench, Cylinder, 
+  Box, Gem, Activity, GlassWater, Shirt, Wind, Snowflake, Waves, Zap,
+  Fan, Lightbulb, Coffee, Thermometer, BatteryCharging, Dumbbell, Battery,
+  Laptop, Cpu, Printer, Monitor, Tv, Tablet, Bike, Car, Refrigerator, Microwave
+} from "lucide-react";
 
 interface RateItem {
   id: string;
@@ -10,6 +16,7 @@ interface RateItem {
   category: string;
   note?: string;
   popular?: boolean;
+  icon: React.ElementType;
 }
 
 const RATE_CATEGORIES = [
@@ -22,55 +29,55 @@ const RATE_CATEGORIES = [
 
 const ALL_RATES: RateItem[] = [
   // Normal Recyclables
-  { id: "newspaper", name: "Newspaper", rate: 15, unit: "kg", category: "normal", popular: true },
-  { id: "office_paper", name: "Office Paper (A3/A4)", rate: 14, unit: "kg", category: "normal", popular: true },
-  { id: "books", name: "Books", rate: 12, unit: "kg", category: "normal", popular: true },
-  { id: "cardboard", name: "Cardboard", rate: 8, unit: "kg", category: "normal" },
-  { id: "plastic", name: "Plastic", rate: 8, unit: "kg", category: "normal", popular: true },
-  { id: "iron", name: "Iron", rate: 25, unit: "kg", category: "normal" },
-  { id: "steel", name: "Steel", rate: 42, unit: "kg", category: "normal" },
-  { id: "aluminium_can", name: "Aluminium Can", rate: 40, unit: "kg", category: "normal" },
-  { id: "aluminium", name: "Aluminium", rate: 112, unit: "kg", category: "normal" },
-  { id: "brass", name: "Brass", rate: 325, unit: "kg", category: "normal" },
-  { id: "copper", name: "Copper", rate: 505, unit: "kg", category: "normal" },
-  { id: "glass", name: "Glass", rate: 2, unit: "kg", category: "normal", note: "Picked only with other items" },
-  { id: "clothes", name: "Clothes", rate: 5, unit: "kg", category: "normal", note: "Picked only with other items" },
+  { id: "newspaper", name: "Newspaper", rate: 15, unit: "kg", category: "normal", popular: true, icon: Newspaper },
+  { id: "office_paper", name: "Office Paper (A3/A4)", rate: 14, unit: "kg", category: "normal", popular: true, icon: FileText },
+  { id: "books", name: "Books", rate: 12, unit: "kg", category: "normal", popular: true, icon: Book },
+  { id: "cardboard", name: "Cardboard", rate: 8, unit: "kg", category: "normal", icon: Package },
+  { id: "plastic", name: "Plastic", rate: 8, unit: "kg", category: "normal", popular: true, icon: Trash2 },
+  { id: "iron", name: "Iron", rate: 25, unit: "kg", category: "normal", icon: Hammer },
+  { id: "steel", name: "Steel", rate: 42, unit: "kg", category: "normal", icon: Wrench },
+  { id: "aluminium_can", name: "Aluminium Can", rate: 40, unit: "kg", category: "normal", icon: Cylinder },
+  { id: "aluminium", name: "Aluminium", rate: 112, unit: "kg", category: "normal", icon: Box },
+  { id: "brass", name: "Brass", rate: 325, unit: "kg", category: "normal", icon: Gem },
+  { id: "copper", name: "Copper", rate: 505, unit: "kg", category: "normal", icon: Activity },
+  { id: "glass", name: "Glass", rate: 2, unit: "kg", category: "normal", note: "Picked only with other items", icon: GlassWater },
+  { id: "clothes", name: "Clothes", rate: 5, unit: "kg", category: "normal", note: "Picked only with other items", icon: Shirt },
 
   // Large Appliances
-  { id: "ac_2ton", name: "Window/Split AC (2 Ton)", rate: 5600, unit: "unit", category: "appliances_large" },
-  { id: "ac_1_5ton", name: "Window/Split AC (1.5 Ton)", rate: 4500, unit: "unit", category: "appliances_large", popular: true },
-  { id: "ac_1ton", name: "Window/Split AC (1 Ton)", rate: 3500, unit: "unit", category: "appliances_large" },
-  { id: "fridge_sidebyside", name: "Side by Side Fridge", rate: 2700, unit: "unit", category: "appliances_large" },
-  { id: "fridge_double", name: "Double Door Fridge", rate: 1350, unit: "unit", category: "appliances_large", popular: true },
-  { id: "fridge_single", name: "Single Door Fridge", rate: 1100, unit: "unit", category: "appliances_large" },
-  { id: "washing_front", name: "Fully Automatic Washing Machine (Front Load)", rate: 1350, unit: "unit", category: "appliances_large" },
-  { id: "washing_top", name: "Fully Automatic Washing Machine (Top Load)", rate: 1000, unit: "unit", category: "appliances_large" },
-  { id: "washing_semi", name: "Semi Automatic Washing Machine", rate: 800, unit: "unit", category: "appliances_large" },
-  { id: "microwave", name: "Microwave", rate: 350, unit: "unit", category: "appliances_large" },
+  { id: "ac_2ton", name: "Window/Split AC (2 Ton)", rate: 5600, unit: "unit", category: "appliances_large", icon: Wind },
+  { id: "ac_1_5ton", name: "Window/Split AC (1.5 Ton)", rate: 4500, unit: "unit", category: "appliances_large", popular: true, icon: Wind },
+  { id: "ac_1ton", name: "Window/Split AC (1 Ton)", rate: 3500, unit: "unit", category: "appliances_large", icon: Wind },
+  { id: "fridge_sidebyside", name: "Side by Side Fridge", rate: 2700, unit: "unit", category: "appliances_large", icon: Refrigerator },
+  { id: "fridge_double", name: "Double Door Fridge", rate: 1350, unit: "unit", category: "appliances_large", popular: true, icon: Refrigerator },
+  { id: "fridge_single", name: "Single Door Fridge", rate: 1100, unit: "unit", category: "appliances_large", icon: Refrigerator },
+  { id: "washing_front", name: "Fully Automatic Washing Machine (Front Load)", rate: 1350, unit: "unit", category: "appliances_large", icon: Waves },
+  { id: "washing_top", name: "Fully Automatic Washing Machine (Top Load)", rate: 1000, unit: "unit", category: "appliances_large", icon: Waves },
+  { id: "washing_semi", name: "Semi Automatic Washing Machine", rate: 800, unit: "unit", category: "appliances_large", icon: Waves },
+  { id: "microwave", name: "Microwave", rate: 350, unit: "unit", category: "appliances_large", icon: Microwave },
 
   // Small Appliances
-  { id: "motor_fan", name: "Metal Appliances Medium (Motor/Ceiling Fan)", rate: 35, unit: "kg", category: "appliances_small" },
-  { id: "metal_light", name: "Metal Appliances Light (DVD/VCR/Iron/Chimney)", rate: 20, unit: "kg", category: "appliances_small" },
-  { id: "iron_cooler", name: "Iron Cooler with Motor", rate: 24, unit: "kg", category: "appliances_small" },
-  { id: "plastic_appliances", name: "Plastic Appliances (Cooler/Mixer/Induction)", rate: 15, unit: "kg", category: "appliances_small" },
-  { id: "geyser", name: "Geyser", rate: 20, unit: "kg", category: "appliances_small" },
-  { id: "stabiliser", name: "Metal Appliances Heavy (Stabiliser/Inverter)", rate: 40, unit: "kg", category: "appliances_small" },
-  { id: "ups", name: "UPS", rate: 180, unit: "unit", category: "appliances_small" },
-  { id: "gym", name: "Gym Equipment", rate: 20, unit: "kg", category: "appliances_small" },
-  { id: "battery_inverter", name: "Battery (Used with Inverters)", rate: 81, unit: "kg", category: "appliances_small", popular: true },
+  { id: "motor_fan", name: "Metal Appliances Medium (Motor/Ceiling Fan)", rate: 35, unit: "kg", category: "appliances_small", icon: Fan },
+  { id: "metal_light", name: "Metal Appliances Light (DVD/VCR/Iron/Chimney)", rate: 20, unit: "kg", category: "appliances_small", icon: Lightbulb },
+  { id: "iron_cooler", name: "Iron Cooler with Motor", rate: 24, unit: "kg", category: "appliances_small", icon: Wind },
+  { id: "plastic_appliances", name: "Plastic Appliances (Cooler/Mixer/Induction)", rate: 15, unit: "kg", category: "appliances_small", icon: Coffee },
+  { id: "geyser", name: "Geyser", rate: 20, unit: "kg", category: "appliances_small", icon: Thermometer },
+  { id: "stabiliser", name: "Metal Appliances Heavy (Stabiliser/Inverter)", rate: 40, unit: "kg", category: "appliances_small", icon: Zap },
+  { id: "ups", name: "UPS", rate: 180, unit: "unit", category: "appliances_small", icon: BatteryCharging },
+  { id: "gym", name: "Gym Equipment", rate: 20, unit: "kg", category: "appliances_small", icon: Dumbbell },
+  { id: "battery_inverter", name: "Battery (Used with Inverters)", rate: 81, unit: "kg", category: "appliances_small", popular: true, icon: Battery },
 
   // IT & E-Waste
-  { id: "laptop", name: "Laptop", rate: 500, unit: "unit", category: "it_ewaste", popular: true },
-  { id: "computer_cpu", name: "Computer CPU", rate: 400, unit: "unit", category: "it_ewaste" },
-  { id: "printer", name: "Printer/Scanner/LCD TV/LED TV", rate: 20, unit: "kg", category: "it_ewaste" },
-  { id: "crt_monitor", name: "CRT Monitor", rate: 150, unit: "unit", category: "it_ewaste" },
-  { id: "crt_tv", name: "CRT TV", rate: 200, unit: "unit", category: "it_ewaste" },
-  { id: "tablet", name: "Tablet", rate: 40, unit: "unit", category: "it_ewaste" },
+  { id: "laptop", name: "Laptop", rate: 500, unit: "unit", category: "it_ewaste", popular: true, icon: Laptop },
+  { id: "computer_cpu", name: "Computer CPU", rate: 400, unit: "unit", category: "it_ewaste", icon: Cpu },
+  { id: "printer", name: "Printer/Scanner/LCD TV/LED TV", rate: 20, unit: "kg", category: "it_ewaste", icon: Printer },
+  { id: "crt_monitor", name: "CRT Monitor", rate: 150, unit: "unit", category: "it_ewaste", icon: Monitor },
+  { id: "crt_tv", name: "CRT TV", rate: 200, unit: "unit", category: "it_ewaste", icon: Tv },
+  { id: "tablet", name: "Tablet", rate: 40, unit: "unit", category: "it_ewaste", icon: Tablet },
 
   // Vehicles
-  { id: "scooty", name: "Scooty / Scooter", rate: 1800, unit: "unit", category: "vehicles" },
-  { id: "bike", name: "Bike", rate: 2500, unit: "unit", category: "vehicles", popular: true },
-  { id: "car", name: "Car", rate: 20000, unit: "unit", category: "vehicles" },
+  { id: "scooty", name: "Scooty / Scooter", rate: 1800, unit: "unit", category: "vehicles", icon: Bike },
+  { id: "bike", name: "Bike", rate: 2500, unit: "unit", category: "vehicles", popular: true, icon: Bike },
+  { id: "car", name: "Car", rate: 20000, unit: "unit", category: "vehicles", icon: Car },
 ];
 
 export function RatesPage() {
@@ -178,8 +185,10 @@ export function RatesPage() {
                   </div>
                 )}
                 <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl opacity-80">{catEmoji[item.category] || "📦"}</span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="bg-emerald-500/10 p-2 rounded-lg">
+                      <item.icon size={22} className="text-emerald-400" />
+                    </div>
                     <h3 className="font-bold text-white leading-tight">{item.name}</h3>
                   </div>
                 </div>
